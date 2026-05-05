@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uipro init *)",
+      "Bash(uipro *)",
+      "Bash(Copy-Item *)",
+      "Bash(python C:\\\\Users\\\\Khangarid\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py \"edtech exam prep SaaS student motivation premium dark\" --design-system -p \"ЭЕШ Мок\" -f markdown)",
+      "Bash(python *)",
+      "Bash(Get-ChildItem \"C:\\\\Users\\\\Khangarid\\\\projects\\\\eesh-mock\\\\node_modules\\\\next\\\\dist\\\\docs\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -First 20 Name)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

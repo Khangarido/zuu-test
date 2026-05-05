@@ -117,6 +117,26 @@
   --sidebar-ring: oklch(0.673 0.182 276.935);
 }
 
+@keyframes float-zero {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  33%       { transform: translateY(-14px) rotate(2deg); }
+  66%       { transform: translateY(7px) rotate(-1.5deg); }
+}
+
+@keyframes float-card {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes float-indicator {
+  0%, 100% { transform: translateX(-50%) translateY(0px); }
+  50%       { transform: translateX(-50%) translateY(-6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -125,6 +145,7 @@
     @apply bg-background text-foreground;
   }
   html {
+    scroll-behavior: smooth;
     @apply font-sans;
   }
 }
