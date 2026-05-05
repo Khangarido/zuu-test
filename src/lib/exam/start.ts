@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { supabaseAdmin } from "@/lib/supabase/admin"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
 export class ExamStartError extends Error {
   code: "NOT_FOUND" | "NO_ACCESS" | "ALREADY_SUBMITTED"
@@ -30,12 +30,13 @@ type ExamSetRow = {
 
 /** Auto-submit an expired in-progress attempt and compute the score. */
 async function autoSubmitExpiredAttempt(attemptId: string, examSetId: string) {
-  const { data: questions } = await supabaseAdmin
+  const admin = getSupabaseAdmin()
+  const { data: questions } = await admin
     .from("questions")
     .select("id, question_type, correct_answer, answer_options(id, is_correct)")
     .eq("exam_set_id", examSetId)
 
-  const { data: answers } = await supabaseAdmin
+  const { data: answers } = await admin
     .from("attempt_answers")
     .select("question_id, selected_option_id, text_answer")
     .eq("attempt_id", attemptId)
@@ -62,7 +63,7 @@ async function autoSubmitExpiredAttempt(attemptId: string, examSetId: string) {
   }
 
   const scorePercentage = total > 0 ? (correct / total) * 100 : 0
-  await supabaseAdmin.from("attempts").update({
+  await admin.from("attempts").update({
     status: "submitted",
     submitted_at: new Date().toISOString(),
     score_percentage: scorePercentage,
@@ -111,7 +112,8 @@ export async function startOrResumeAttempt(
     }
   }
 
-  const { data: existingAttempt, error: attemptError } = await supabaseAdmin
+  const admin = getSupabaseAdmin()
+  const { data: existingAttempt, error: attemptError } = await admin
     .from("attempts")
     .select("id, started_at, status")
     .eq("user_id", userId)
@@ -135,7 +137,7 @@ export async function startOrResumeAttempt(
       }
       // forceNew=true: reset the existing attempt in-place (avoids unique constraint issues)
       const nowIso = new Date().toISOString()
-      const { error: resetError } = await supabaseAdmin
+      const { error: resetError } = await admin
         .from("attempts")
         .update({
           status: "in_progress",
@@ -150,7 +152,7 @@ export async function startOrResumeAttempt(
       if (resetError) throw new Error(resetError.message)
 
       // Clear previous answers so the retake starts fresh
-      await supabaseAdmin.from("attempt_answers").delete().eq("attempt_id", typedAttempt.id)
+      await admin.from("attempt_answers").delete().eq("attempt_id", typedAttempt.id)
 
       return {
         examSet: typedExamSet,
@@ -173,7 +175,7 @@ export async function startOrResumeAttempt(
   }
 
   // No existing attempt — create a fresh one
-  const { data: insertedAttempt, error: insertAttemptError } = await supabaseAdmin
+  const { data: insertedAttempt, error: insertAttemptError } = await admin
     .from("attempts")
     .insert({ user_id: userId, exam_set_id: examSetId, status: "in_progress" })
     .select("id, started_at, status")

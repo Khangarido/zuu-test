@@ -19,31 +19,90 @@ import { cn } from "@/lib/utils"
 
 // ─── Pre-defined floater positions (avoids SSR hydration mismatch) ────────
 const FLOATERS = [
-  { id: 0,  top: 8,  left: 4,  size: 64, delay: 0,   dur: 5.5 },
-  { id: 1,  top: 15, left: 88, size: 48, delay: 0.8,  dur: 4.8 },
-  { id: 2,  top: 25, left: 20, size: 32, delay: 1.5,  dur: 6.2 },
-  { id: 3,  top: 35, left: 72, size: 56, delay: 0.3,  dur: 5.1 },
-  { id: 4,  top: 48, left: 10, size: 40, delay: 2.1,  dur: 4.5 },
-  { id: 5,  top: 55, left: 85, size: 72, delay: 1.0,  dur: 5.8 },
-  { id: 6,  top: 65, left: 32, size: 28, delay: 0.6,  dur: 4.2 },
-  { id: 7,  top: 75, left: 62, size: 52, delay: 1.8,  dur: 5.5 },
-  { id: 8,  top: 82, left: 18, size: 36, delay: 0.4,  dur: 6.0 },
-  { id: 9,  top: 12, left: 52, size: 52, delay: 1.2,  dur: 4.9 },
-  { id: 10, top: 30, left: 44, size: 44, delay: 2.5,  dur: 5.3 },
-  { id: 11, top: 60, left: 56, size: 60, delay: 0.9,  dur: 4.7 },
-  { id: 12, top: 20, left: 76, size: 36, delay: 1.7,  dur: 5.6 },
-  { id: 13, top: 70, left: 40, size: 40, delay: 0.2,  dur: 4.4 },
-  { id: 14, top: 88, left: 80, size: 28, delay: 1.4,  dur: 5.0 },
-  { id: 15, top: 5,  left: 65, size: 48, delay: 2.0,  dur: 5.2 },
-  { id: 16, top: 42, left: 92, size: 56, delay: 0.7,  dur: 4.6 },
-  { id: 17, top: 52, left: 2,  size: 44, delay: 1.6,  dur: 5.7 },
-  { id: 18, top: 90, left: 35, size: 32, delay: 0.5,  dur: 4.3 },
-  { id: 19, top: 18, left: 36, size: 52, delay: 1.9,  dur: 5.4 },
-  { id: 20, top: 95, left: 55, size: 40, delay: 0.1,  dur: 4.8 },
-  { id: 21, top: 43, left: 60, size: 28, delay: 2.3,  dur: 5.1 },
-  { id: 22, top: 72, left: 78, size: 44, delay: 0.8,  dur: 4.9 },
-  { id: 23, top: 28, left: 8,  size: 60, delay: 1.3,  dur: 5.3 },
-  { id: 24, top: 58, left: 25, size: 36, delay: 2.0,  dur: 4.7 },
+  { id: 0,  top: 2,  left: 8,  size: 14, delay: 0.0,  dur: 6.2, anim: "a" },
+  { id: 1,  top: 4,  left: 18, size: 20, delay: 1.2,  dur: 5.5, anim: "b" },
+  { id: 2,  top: 7,  left: 32, size: 12, delay: 0.4,  dur: 7.0, anim: "c" },
+  { id: 3,  top: 3,  left: 48, size: 28, delay: 2.1,  dur: 5.8, anim: "d" },
+  { id: 4,  top: 6,  left: 62, size: 16, delay: 0.8,  dur: 6.5, anim: "e" },
+  { id: 5,  top: 2,  left: 75, size: 24, delay: 1.5,  dur: 5.2, anim: "f" },
+  { id: 6,  top: 8,  left: 88, size: 18, delay: 0.3,  dur: 6.8, anim: "g" },
+  { id: 7,  top: 12, left: 5,  size: 32, delay: 1.8,  dur: 5.6, anim: "h" },
+  { id: 8,  top: 14, left: 24, size: 15, delay: 0.6,  dur: 7.2, anim: "a" },
+  { id: 9,  top: 10, left: 42, size: 22, delay: 2.4,  dur: 5.9, anim: "b" },
+  { id: 10, top: 16, left: 56, size: 13, delay: 1.0,  dur: 6.3, anim: "c" },
+  { id: 11, top: 11, left: 70, size: 35, delay: 0.2,  dur: 5.4, anim: "d" },
+  { id: 12, top: 18, left: 83, size: 20, delay: 1.7,  dur: 6.7, anim: "e" },
+  { id: 13, top: 15, left: 94, size: 16, delay: 0.5,  dur: 5.1, anim: "f" },
+  { id: 14, top: 22, left: 2,  size: 25, delay: 2.0,  dur: 6.0, anim: "g" },
+  { id: 15, top: 25, left: 14, size: 12, delay: 0.9,  dur: 7.3, anim: "h" },
+  { id: 16, top: 28, left: 28, size: 38, delay: 1.3,  dur: 5.7, anim: "a" },
+  { id: 17, top: 23, left: 44, size: 18, delay: 2.6,  dur: 6.1, anim: "b" },
+  { id: 18, top: 30, left: 58, size: 14, delay: 0.7,  dur: 5.5, anim: "c" },
+  { id: 19, top: 26, left: 72, size: 28, delay: 1.4,  dur: 6.9, anim: "d" },
+  { id: 20, top: 33, left: 86, size: 22, delay: 0.1,  dur: 5.3, anim: "e" },
+  { id: 21, top: 37, left: 8,  size: 16, delay: 2.3,  dur: 6.6, anim: "f" },
+  { id: 22, top: 35, left: 20, size: 42, delay: 1.1,  dur: 5.0, anim: "g" },
+  { id: 23, top: 38, left: 35, size: 13, delay: 0.4,  dur: 7.1, anim: "h" },
+  { id: 24, top: 32, left: 50, size: 30, delay: 1.9,  dur: 5.8, anim: "a" },
+  { id: 25, top: 40, left: 65, size: 17, delay: 2.7,  dur: 6.4, anim: "b" },
+  { id: 26, top: 36, left: 78, size: 24, delay: 0.6,  dur: 5.6, anim: "c" },
+  { id: 27, top: 39, left: 92, size: 12, delay: 1.6,  dur: 7.0, anim: "d" },
+  { id: 28, top: 42, left: 5,  size: 35, delay: 0.3,  dur: 5.9, anim: "e" },
+  { id: 29, top: 45, left: 18, size: 19, delay: 2.1,  dur: 6.2, anim: "f" },
+  { id: 30, top: 48, left: 30, size: 14, delay: 1.0,  dur: 5.4, anim: "g" },
+  { id: 31, top: 44, left: 46, size: 46, delay: 0.8,  dur: 6.8, anim: "h" },
+  { id: 32, top: 50, left: 60, size: 21, delay: 2.5,  dur: 5.1, anim: "a" },
+  { id: 33, top: 46, left: 74, size: 13, delay: 1.2,  dur: 7.2, anim: "b" },
+  { id: 34, top: 52, left: 88, size: 32, delay: 0.5,  dur: 5.7, anim: "c" },
+  { id: 35, top: 55, left: 3,  size: 18, delay: 1.8,  dur: 6.5, anim: "d" },
+  { id: 36, top: 58, left: 15, size: 27, delay: 0.2,  dur: 5.3, anim: "e" },
+  { id: 37, top: 54, left: 27, size: 15, delay: 2.4,  dur: 6.9, anim: "f" },
+  { id: 38, top: 57, left: 40, size: 40, delay: 1.5,  dur: 5.2, anim: "g" },
+  { id: 39, top: 53, left: 55, size: 12, delay: 0.7,  dur: 7.3, anim: "h" },
+  { id: 40, top: 60, left: 68, size: 23, delay: 1.3,  dur: 5.6, anim: "a" },
+  { id: 41, top: 56, left: 82, size: 36, delay: 2.0,  dur: 6.1, anim: "b" },
+  { id: 42, top: 62, left: 7,  size: 16, delay: 0.9,  dur: 5.8, anim: "c" },
+  { id: 43, top: 65, left: 22, size: 44, delay: 1.7,  dur: 6.4, anim: "d" },
+  { id: 44, top: 68, left: 36, size: 14, delay: 0.4,  dur: 5.0, anim: "e" },
+  { id: 45, top: 63, left: 50, size: 28, delay: 2.2,  dur: 7.0, anim: "f" },
+  { id: 46, top: 70, left: 64, size: 19, delay: 1.0,  dur: 5.5, anim: "g" },
+  { id: 47, top: 66, left: 78, size: 12, delay: 0.6,  dur: 6.7, anim: "h" },
+  { id: 48, top: 73, left: 90, size: 33, delay: 1.4,  dur: 5.3, anim: "a" },
+  { id: 49, top: 75, left: 10, size: 20, delay: 2.8,  dur: 6.0, anim: "b" },
+  { id: 50, top: 72, left: 25, size: 15, delay: 0.3,  dur: 7.1, anim: "c" },
+  { id: 51, top: 78, left: 38, size: 38, delay: 1.6,  dur: 5.7, anim: "d" },
+  { id: 52, top: 74, left: 52, size: 13, delay: 2.1,  dur: 6.3, anim: "e" },
+  { id: 53, top: 80, left: 66, size: 26, delay: 0.8,  dur: 5.9, anim: "f" },
+  { id: 54, top: 76, left: 80, size: 18, delay: 1.9,  dur: 6.6, anim: "g" },
+  { id: 55, top: 82, left: 4,  size: 22, delay: 0.5,  dur: 5.4, anim: "h" },
+  { id: 56, top: 85, left: 16, size: 12, delay: 2.3,  dur: 7.2, anim: "a" },
+  { id: 57, top: 83, left: 30, size: 30, delay: 1.1,  dur: 5.1, anim: "b" },
+  { id: 58, top: 88, left: 44, size: 16, delay: 0.2,  dur: 6.8, anim: "c" },
+  { id: 59, top: 86, left: 58, size: 42, delay: 1.7,  dur: 5.6, anim: "d" },
+  { id: 60, top: 90, left: 72, size: 14, delay: 2.5,  dur: 6.2, anim: "e" },
+  { id: 61, top: 87, left: 85, size: 24, delay: 0.6,  dur: 5.8, anim: "f" },
+  { id: 62, top: 93, left: 6,  size: 18, delay: 1.4,  dur: 7.0, anim: "g" },
+  { id: 63, top: 95, left: 20, size: 35, delay: 0.9,  dur: 5.3, anim: "h" },
+  { id: 64, top: 92, left: 34, size: 12, delay: 2.0,  dur: 6.5, anim: "a" },
+  { id: 65, top: 97, left: 48, size: 28, delay: 0.3,  dur: 5.7, anim: "b" },
+  { id: 66, top: 94, left: 62, size: 16, delay: 1.6,  dur: 6.1, anim: "c" },
+  { id: 67, top: 96, left: 76, size: 20, delay: 2.4,  dur: 5.4, anim: "d" },
+  { id: 68, top: 91, left: 90, size: 14, delay: 1.0,  dur: 6.9, anim: "e" },
+  { id: 69, top: 20, left: 96, size: 16, delay: 1.5,  dur: 5.6, anim: "f" },
+  { id: 70, top: 45, left: 97, size: 22, delay: 0.7,  dur: 6.3, anim: "g" },
+  { id: 71, top: 70, left: 97, size: 12, delay: 2.2,  dur: 5.9, anim: "h" },
+  { id: 72, top: 85, left: 96, size: 18, delay: 0.4,  dur: 7.1, anim: "a" },
+  { id: 73, top: 8,  left: 0,  size: 24, delay: 1.8,  dur: 5.2, anim: "b" },
+  { id: 74, top: 30, left: 1,  size: 14, delay: 0.1,  dur: 6.7, anim: "c" },
+  { id: 75, top: 60, left: 0,  size: 30, delay: 2.6,  dur: 5.5, anim: "d" },
+  { id: 76, top: 80, left: 1,  size: 16, delay: 1.3,  dur: 6.0, anim: "e" },
+  { id: 77, top: 50, left: 90, size: 12, delay: 0.6,  dur: 7.3, anim: "f" },
+  { id: 78, top: 20, left: 50, size: 48, delay: 1.2,  dur: 5.0, anim: "g" },
+  { id: 79, top: 65, left: 42, size: 26, delay: 2.9,  dur: 6.4, anim: "h" },
+  { id: 80, top: 41, left: 12, size: 33, delay: 0.8,  dur: 5.8, anim: "a" },
+  { id: 81, top: 19, left: 68, size: 15, delay: 1.9,  dur: 6.2, anim: "b" },
+  { id: 82, top: 77, left: 55, size: 28, delay: 0.3,  dur: 5.6, anim: "c" },
+  { id: 83, top: 88, left: 28, size: 12, delay: 2.1,  dur: 7.0, anim: "d" },
 ]
 
 // Bento grid — large: true = col-span-2 on lg
@@ -60,7 +119,7 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: "Дэлгэрэнгүй шинжилгээ",
-    desc: "Сэдэв бүрээр задаргаа авч, нийт сурагчтай rank харь.",
+    desc: "Сэдэв бүрээр задаргаа авч, нийт сурагчидтай харьцуулагдах rank-аа хар.",
     large: false,
   },
   {
@@ -125,10 +184,31 @@ function useInView(threshold = 0.15) {
   return [ref, inView] as const
 }
 
+const SALE_END = new Date("2026-05-13T23:59:00+08:00")
+
+function useCountdown(end: Date) {
+  const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 })
+  useEffect(() => {
+    function tick() {
+      const diff = Math.max(0, end.getTime() - Date.now())
+      setT({
+        d: Math.floor(diff / 86400000),
+        h: Math.floor((diff % 86400000) / 3600000),
+        m: Math.floor((diff % 3600000) / 60000),
+        s: Math.floor((diff % 60000) / 1000),
+      })
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [end])
+  return t
+}
+
 function useCountUp(target: number, active: boolean) {
   const [count, setCount] = useState(0)
   useEffect(() => {
-    if (!active) return
+    if (!active) { setCount(0); return }
     const dur = 2400
     let start: number | null = null
     const step = (ts: number) => {
@@ -169,10 +249,10 @@ function FadeIn({
   )
 }
 
-function ScoreRing() {
+function ScoreRing({ progress = 0 }: { progress?: number }) {
   const r = 26
   const circ = 2 * Math.PI * r
-  const offset = circ * (1 - 0.94)
+  const offset = circ * (1 - progress)
   return (
     <svg width="64" height="64" viewBox="0 0 64 64" style={{ transform: "rotate(-90deg)" }} aria-hidden="true">
       <circle cx="32" cy="32" r={r} fill="none" stroke="rgba(99,102,241,0.18)" strokeWidth="5" />
@@ -182,6 +262,7 @@ function ScoreRing() {
         strokeLinecap="round"
         strokeDasharray={circ}
         strokeDashoffset={offset}
+        style={{ transition: "stroke-dashoffset 1.6s cubic-bezier(0.34,1.56,0.64,1)" }}
       />
       <defs>
         <linearGradient id="score-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -197,11 +278,14 @@ function ScoreRing() {
 export default function LandingPage() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [scrolled, setScrolled] = useState(false)
+  const [cardHovered, setCardHovered] = useState(false)
   const [statsRef, statsInView] = useInView(0.3)
+  const countdown = useCountdown(SALE_END)
 
   const c1 = useCountUp(1200, statsInView)
   const c2 = useCountUp(50, statsInView)
   const c3 = useCountUp(800, statsInView)
+  const cardScore = useCountUp(94, cardHovered)
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40)
@@ -276,10 +360,11 @@ export default function LandingPage() {
                 : "none",
               transform: hovered === f.id ? "scale(1.18)" : "scale(1)",
               transition: "color 0.2s ease, text-shadow 0.2s ease, transform 0.2s ease",
-              animation: `float-zero ${f.dur}s ease-in-out ${f.delay}s infinite`,
+              animation: `float-${f.anim} ${f.dur}s ease-in-out ${f.delay}s infinite`,
+              willChange: "transform",
             }}
           >
-            {hovered === f.id ? "8" : "0"}
+            {hovered === f.id ? "800" : "0"}
           </span>
         ))}
 
@@ -288,7 +373,7 @@ export default function LandingPage() {
           {/* Pill badge */}
           <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 px-4 py-1.5 mb-8 backdrop-blur-sm">
             <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            <span className="text-xs font-semibold tracking-widest text-indigo-400 uppercase">
+            <span className="text-sm font-semibold tracking-wide text-indigo-400 uppercase">
               Бидэнтэй цуг
             </span>
           </div>
@@ -335,21 +420,28 @@ export default function LandingPage() {
 
         {/* Floating score card — xl only */}
         <div
-          className="absolute right-[7%] top-1/2 hidden xl:block"
+          className="absolute right-[7%] top-1/2 hidden xl:block cursor-pointer"
+          onMouseEnter={() => setCardHovered(true)}
+          onMouseLeave={() => setCardHovered(false)}
           style={{
             transform: "translateY(-50%)",
             animation: "float-card 3.8s ease-in-out infinite",
           }}
         >
-          <div className="relative rounded-2xl border border-white/8 bg-white/[0.04] backdrop-blur-2xl p-6 shadow-2xl shadow-black/60 w-40">
-            {/* Glow behind card */}
-            <div className="absolute inset-0 rounded-2xl bg-indigo-500/8 blur-xl" />
+          <div className={cn(
+            "relative rounded-2xl border bg-white/[0.04] backdrop-blur-2xl p-6 shadow-2xl shadow-black/60 w-40 transition-all duration-300",
+            cardHovered ? "border-indigo-500/50 shadow-indigo-500/25" : "border-white/8"
+          )}>
+            <div className={cn(
+              "absolute inset-0 rounded-2xl blur-xl transition-opacity duration-300",
+              cardHovered ? "bg-indigo-500/18" : "bg-indigo-500/8"
+            )} />
             <div className="relative">
               <div className="flex justify-center">
-                <ScoreRing />
+                <ScoreRing progress={cardScore / 100} />
               </div>
               <div className="mt-3 text-center">
-                <div className="text-3xl font-extrabold">94%</div>
+                <div className="text-3xl font-extrabold tabular-nums">{cardScore}%</div>
                 <div className="text-xs text-white/35 mt-1 tracking-wide">Таны оноо</div>
               </div>
               <div className="mt-3 pt-3 border-t border-white/8 text-center">
@@ -390,7 +482,7 @@ export default function LandingPage() {
                 <div className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent tabular-nums">
                   {c2}+
                 </div>
-                <div className="text-sm text-white/35 mt-2 tracking-wide">Шалгалтын багц</div>
+                <div className="text-sm text-white/35 mt-2 tracking-wide">Шалгалтын материал</div>
               </div>
               <div>
                 <div className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent tabular-nums">
@@ -588,19 +680,34 @@ export default function LandingPage() {
             <FadeIn delay={240}>
               <div className="h-full flex flex-col rounded-2xl border border-white/5 bg-white/[0.02] p-7">
                 <div className="mb-8">
-                  <p className="text-xs font-semibold text-white/35 uppercase tracking-widest mb-3">
-                    Бүтэн улирал
-                  </p>
+                  <div className="flex items-center gap-2 mb-3">
+                    <p className="text-xs font-semibold text-white/35 uppercase tracking-widest">
+                      Бүтэн улирал
+                    </p>
+                    <span className="rounded-full bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 text-[10px] font-bold text-rose-400 uppercase tracking-wide">
+                      Sale
+                    </span>
+                  </div>
+                  <div className="flex items-end gap-2 mb-1">
+                    <span className="text-base font-bold text-white/25 line-through">50,000₮</span>
+                    <span className="text-[10px] font-semibold text-rose-400">-50%</span>
+                  </div>
                   <div className="flex items-end gap-1">
                     <span className="text-5xl font-extrabold">24,900</span>
                     <span className="text-2xl font-bold text-white/50 mb-1">₮</span>
                   </div>
                   <p className="text-white/25 text-xs mt-1">ЭЕШ дуустал нэг хичээл</p>
+                  <div className="mt-3 flex items-center gap-1.5 text-[11px] text-rose-400/80 font-medium">
+                    <span>⏱</span>
+                    <span>
+                      {countdown.d > 0 ? `${countdown.d}х ` : ""}{String(countdown.h).padStart(2, "0")}:{String(countdown.m).padStart(2, "0")}:{String(countdown.s).padStart(2, "0")} үлдсэн
+                    </span>
+                  </div>
                 </div>
                 <ul className="space-y-3 flex-1 mb-8">
                   {[
                     "Нэг хичээлийн бүх материал",
-                    "Шалгалтын тоогүй дасгал",
+                    "Шалгалтын материалын хязгааргүй хэрэглээ",
                     "Давтагдашгүй үнэ",
                     "Бүх дүн шинжилгээ",
                   ].map((item) => (
