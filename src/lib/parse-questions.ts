@@ -288,19 +288,18 @@ export function parseQuestions(raw: string): {
       continue
     }
 
-    if (!options.A?.trim() || !options.B?.trim() || !options.C?.trim() || !options.D?.trim()) {
-      fail("A, B, C, D сонголт бүгд заавал байна."); continue
-    }
-    if (!correct) { fail("ANSWER: A/B/C/D/E заавал байна."); continue }
+    const filledLabels = (["A","B","C","D","E"] as OptionLabel[]).filter(l => options[l]?.trim())
+    if (filledLabels.length < 2) { fail("Хамгийн багадаа 2 сонголт байна."); continue }
+    if (!correct) { fail("ANSWER: заавал байна."); continue }
     if (!options[correct]?.trim()) { fail(`"${correct}" сонголтын текст хоосон байна.`); continue }
 
     questions.push({
       question_text: questionText.trim(),
       options: {
-        A: options.A.trim(),
-        B: options.B.trim(),
-        C: options.C.trim(),
-        D: options.D.trim(),
+        A: (options.A ?? "").trim(),
+        B: (options.B ?? "").trim(),
+        C: (options.C ?? "").trim(),
+        D: (options.D ?? "").trim(),
         E: (options.E ?? "").trim(),
       },
       correct,

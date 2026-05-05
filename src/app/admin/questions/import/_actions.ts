@@ -87,30 +87,22 @@ export async function bulkImportParsed(
   const { error: insertQuestionsError } = await supabase.from("questions").insert(rows)
   if (insertQuestionsError) return { inserted: 0, dbError: insertQuestionsError.message }
 
-  // Only insert options for multiple-choice questions
-  const mcQuestions = questions.filter((q) => q.question_type !== "fill_in")
-  if (mcQuestions.length > 0) {
-    const optionRows = questions.flatMap((q, i) => {
-      if (q.question_type === "fill_in") return []
-      const questionId = questionIds[i]
-      const base = (["A", "B", "C", "D"] as OptionLabel[]).map((label) => ({
-        question_id: questionId,
-        option_label: label,
-        option_text: q.options[label],
-        is_correct: q.correct === label,
-      }))
-      if (q.options.E?.trim()) {
-        base.push({ question_id: questionId, option_label: "E", option_text: q.options.E, is_correct: q.correct === "E" })
-      }
-      return base
-    })
+  const optionRows = questions.flatMap((q, i) => {
+    if (q.question_type === "fill_in") return []
+    const questionId = questionIds[i]
+    return (["A","B","C","D","E"] as OptionLabel[]).filter(l => q.options[l]?.trim()).map(label => ({
+      question_id: questionId,
+      option_label: label,
+      option_text: q.options[label],
+      is_correct: q.correct === label,
+    }))
+  })
 
-    if (optionRows.length > 0) {
-      const { error: insertOptionsError } = await supabase.from("answer_options").insert(optionRows)
-      if (insertOptionsError) {
-        await supabase.from("questions").delete().in("id", questionIds)
-        return { inserted: 0, dbError: insertOptionsError.message }
-      }
+  if (optionRows.length > 0) {
+    const { error: insertOptionsError } = await supabase.from("answer_options").insert(optionRows)
+    if (insertOptionsError) {
+      await supabase.from("questions").delete().in("id", questionIds)
+      return { inserted: 0, dbError: insertOptionsError.message }
     }
   }
 
@@ -160,14 +152,12 @@ export async function bulkImportQuestions(
   const optionRows = questions.flatMap((q, i) => {
     if (q.question_type === "fill_in") return []
     const questionId = questionIds[i]
-    const base = [
-      { question_id: questionId, option_label: "A", option_text: q.options.A, is_correct: q.correct === "A" },
-      { question_id: questionId, option_label: "B", option_text: q.options.B, is_correct: q.correct === "B" },
-      { question_id: questionId, option_label: "C", option_text: q.options.C, is_correct: q.correct === "C" },
-      { question_id: questionId, option_label: "D", option_text: q.options.D, is_correct: q.correct === "D" },
-    ]
-    if (q.options.E) base.push({ question_id: questionId, option_label: "E", option_text: q.options.E, is_correct: q.correct === "E" })
-    return base
+    return (["A","B","C","D","E"] as OptionLabel[]).filter(l => q.options[l]?.trim()).map(label => ({
+      question_id: questionId,
+      option_label: label,
+      option_text: q.options[label],
+      is_correct: q.correct === label,
+    }))
   })
 
   if (optionRows.length > 0) {
