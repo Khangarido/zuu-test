@@ -1,73 +1,76 @@
-import { createClient } from "@/lib/supabase/server";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { StudentsClient } from "./_client"
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
 export default async function StudentsAdminPage() {
-  const supabase = await createClient();
-  const { data: students } = await supabase
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect("/login")
+
+  const { data: viewer } = await supabase
     .from("profiles")
-    .select("id, full_name, school, grade, created_at, role")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle()
+
+  if (!viewer || viewer.role !== "superadmin") {
+    redirect("/admin")
+  }
+
+  const admin = getSupabaseAdmin()
+
+  const { data: students } = await admin
+    .from("profiles")
+    .select(
+      "id, full_name, username, avatar_url, grade, subjects, rank_score, rank_tier, created_at"
+    )
     .eq("role", "student")
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .order("rank_score", { ascending: false })
+
+  // Get attempt stats
+  const userIds = (students ?? []).map((s) => s.id)
+  const { data: attempts } = await admin
+    .from("attempts")
+    .select("user_id, score_percentage")
+    .in("user_id", userIds)
+    .eq("status", "submitted")
+
+  const statsMap: Record<string, { count: number; total: number }> = {}
+  for (const a of attempts ?? []) {
+    if (!statsMap[a.user_id]) statsMap[a.user_id] = { count: 0, total: 0 }
+    statsMap[a.user_id].count++
+    statsMap[a.user_id].total += a.score_percentage ?? 0
+  }
+
+  const enriched = (students ?? []).map((s) => ({
+    id:         s.id,
+    full_name:  s.full_name  as string | null,
+    username:   s.username   as string | null,
+    avatar_url: s.avatar_url as string | null,
+    grade:      s.grade      as string | null,
+    subjects:   s.subjects   as string[] | null,
+    rank_score: (s.rank_score as number) ?? 0,
+    rank_tier:  (s.rank_tier  as string) ?? "Bronze",
+    created_at: s.created_at as string,
+    attempts:   statsMap[s.id]?.count ?? 0,
+    avg_score:  statsMap[s.id]?.count
+      ? statsMap[s.id].total / statsMap[s.id].count
+      : null,
+  }))
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Сурагчид</h1>
         <p className="text-muted-foreground">
-          Бүртгэлтэй сурагчдын жагсаалт.
+          Бүртгэлтэй сурагчдын дэлгэрэнгүй жагсаалт — {enriched.length} сурагч
         </p>
       </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Сүүлд бүртгүүлсэн ({students?.length ?? 0})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {(students ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              Бүртгэлтэй сурагч алга.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Нэр</TableHead>
-                  <TableHead>Сургууль</TableHead>
-                  <TableHead>Анги</TableHead>
-                  <TableHead>Бүртгэгдсэн</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students!.map((s) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="font-medium">{s.full_name}</TableCell>
-                    <TableCell>{s.school ?? "—"}</TableCell>
-                    <TableCell>{s.grade ?? "—"}</TableCell>
-                    <TableCell>
-                      {new Date(s.created_at).toLocaleDateString("mn-MN")}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+
+      <StudentsClient students={enriched} />
     </div>
-  );
+  )
 }

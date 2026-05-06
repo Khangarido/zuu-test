@@ -63,7 +63,7 @@ export async function updateSession(request: NextRequest) {
       .eq("id", user.id)
       .maybeSingle();
 
-    if (!profile || profile.role !== "admin") {
+    if (!profile || !["admin", "superadmin"].includes(profile.role)) {
       const url = request.nextUrl.clone();
       url.pathname = "/dashboard";
       url.search = "";

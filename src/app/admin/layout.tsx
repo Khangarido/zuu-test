@@ -41,7 +41,7 @@ export default async function AdminLayout({
     .eq("id", user.id)
     .maybeSingle();
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !["admin", "superadmin"].includes(profile.role)) {
     redirect("/dashboard");
   }
 
@@ -64,7 +64,7 @@ export default async function AdminLayout({
 
         {/* Nav */}
         <div className="flex-1 overflow-y-auto">
-          <AdminNav />
+          <AdminNav role={profile.role} />
         </div>
 
         {/* Bottom user */}
@@ -97,7 +97,7 @@ export default async function AdminLayout({
 
           {/* Mobile nav — horizontal scroll */}
           <div className="md:hidden flex-1 overflow-x-auto mx-3">
-            <AdminNav />
+            <AdminNav role={profile.role} />
           </div>
 
           <div className="flex items-center gap-1">

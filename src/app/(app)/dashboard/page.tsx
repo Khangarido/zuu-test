@@ -53,7 +53,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role")
+    .select("full_name, role, username, avatar_url")
     .eq("id", user.id)
     .maybeSingle();
 
@@ -87,9 +87,9 @@ export default async function DashboardPage() {
   }
   const { data: available } = await availableQuery;
 
-  const fullName = profile?.full_name ?? "";
+  const fullName  = profile?.full_name ?? "";
   const firstName = fullName.split(" ")[0] || "сурагч";
-  const role = profile?.role === "admin" ? "admin" : "student";
+  const role      = profile?.role === "admin" || profile?.role === "superadmin" ? "admin" : "student";
   const submitted = (attempts ?? []).filter((a) => a.status === "submitted");
 
   const avgScore =
@@ -104,6 +104,8 @@ export default async function DashboardPage() {
       email={user.email ?? ""}
       role={role}
       isAdmin={role === "admin"}
+      username={profile?.username ?? null}
+      avatarUrl={profile?.avatar_url ?? null}
     >
       <div className="space-y-10">
         {/* Welcome hero */}

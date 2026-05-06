@@ -10,7 +10,10 @@
       "Bash(Select-Object -First 20 Name)",
       "Bash(npm run *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Khangarid\\\\projects\\\\eesh-mock\" -Recurse -Directory)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem C:UsersKhangaridprojectseesh-mocksrc *)"
     ]
   }
 }

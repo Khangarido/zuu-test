@@ -10,6 +10,7 @@ import {
   HelpCircle,
   Users,
   CreditCard,
+  ShieldAlert,
 } from "lucide-react"
 
 const navItems = [
@@ -21,14 +22,21 @@ const navItems = [
   { href: "/admin/payments", label: "Төлбөр", icon: CreditCard },
 ]
 
-export function AdminNav() {
+export function AdminNav({ role }: { role?: string }) {
   const pathname = usePathname()
+
+  const allItems = [
+    ...navItems,
+    ...(role === "superadmin"
+      ? [{ href: "/admin/dashboard", label: "Superadmin", icon: ShieldAlert, exact: false }]
+      : []),
+  ]
 
   return (
     <nav className="p-3 space-y-0.5">
-      {navItems.map((item) => {
+      {allItems.map((item) => {
         const Icon = item.icon
-        const isActive = item.exact
+        const isActive = (item as { exact?: boolean }).exact
           ? pathname === item.href
           : pathname === item.href || pathname.startsWith(item.href + "/")
         return (

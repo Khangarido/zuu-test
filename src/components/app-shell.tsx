@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, Trophy, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface AppShellProps {
@@ -18,6 +18,8 @@ interface AppShellProps {
   email: string;
   role: "student" | "admin";
   isAdmin?: boolean;
+  username?: string | null;
+  avatarUrl?: string | null;
 }
 
 function initials(name: string) {
@@ -29,7 +31,14 @@ function initials(name: string) {
     .join("");
 }
 
-export function AppShell({ children, fullName, email, isAdmin }: AppShellProps) {
+export function AppShell({
+  children,
+  fullName,
+  email,
+  isAdmin,
+  username,
+  avatarUrl,
+}: AppShellProps) {
   const abbr = initials(fullName) || "?";
 
   return (
@@ -56,6 +65,7 @@ export function AppShell({ children, fullName, email, isAdmin }: AppShellProps) 
                   className="gap-2 cursor-pointer"
                 >
                   <Avatar className="size-7 ring-2 ring-primary/20">
+                    <AvatarImage src={avatarUrl ?? undefined} alt={fullName} />
                     <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-xs font-semibold">
                       {abbr}
                     </AvatarFallback>
@@ -77,6 +87,21 @@ export function AppShell({ children, fullName, email, isAdmin }: AppShellProps) 
                   <Link href="/dashboard" className="cursor-pointer flex items-center gap-2">
                     <LayoutDashboard className="size-4" />
                     Самбар
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link
+                    href={username ? `/profile/${username}` : "/profile/me"}
+                    className="cursor-pointer flex items-center gap-2"
+                  >
+                    <User className="size-4" />
+                    Профайл
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/leaderboard" className="cursor-pointer flex items-center gap-2">
+                    <Trophy className="size-4" />
+                    Эрэмбэ
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (
