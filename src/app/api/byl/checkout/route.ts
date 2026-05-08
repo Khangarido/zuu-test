@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
+function encodeUUID(uuid: string): string {
+  return Buffer.from(uuid.replace(/-/g, ""), "hex").toString("base64url")
+}
+
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -45,7 +49,7 @@ export async function POST(req: NextRequest) {
         }],
         success_url: `${siteUrl}/dashboard?payment=success`,
         cancel_url: `${siteUrl}/dashboard?payment=cancelled`,
-        client_reference_id: `${user.id}:${examSetId}`,
+        client_reference_id: `${encodeUUID(user.id)}:${encodeUUID(examSetId)}`,
       }),
     }
   )

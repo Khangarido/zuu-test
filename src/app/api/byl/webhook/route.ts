@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
+function decodeUUID(encoded: string): string {
+  const hex = Buffer.from(encoded, "base64url").toString("hex")
+  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`
+}
+
 function verifySignature(payload: string, signature: string, secret: string): boolean {
   if (!signature || !secret) return false
   const expected = crypto.createHmac("sha256", secret).update(payload).digest("hex")
@@ -35,8 +40,8 @@ export async function POST(req: NextRequest) {
   if (type === "checkout.completed" || type === "invoice.paid") {
     const ref = (data?.client_reference_id ?? "") as string
     const parts = ref.split(":")
-    const userId = parts[0]
-    const examSetId = parts[1]
+    const userId = decodeUUID(parts[0])
+    const examSetId = decodeUUID(parts[1])
 
     if (userId && examSetId) {
       const admin = getSupabaseAdmin()
