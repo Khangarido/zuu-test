@@ -45,7 +45,6 @@ export default async function ExamSetsAdminPage() {
       supabase.from("subjects").select("id, name").order("name", { ascending: true }),
     ])
 
-  if (examSetsError) throw new Error(examSetsError.message)
   if (subjectsError) throw new Error(subjectsError.message)
 
   const subjectOptions = ((subjects ?? []) as SubjectRow[]).map((subject) => ({

@@ -42,7 +42,13 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
   if (accessIds.length > 0) {
     availableQuery = availableQuery.not("id", "in", `(${accessIds.join(",")})`)
   }
-  const { data: available } = await availableQuery
+  let { data: available, error: availableError } = await availableQuery
+  if (availableError) {
+    const fallback = supabase.from("exam_sets").select("id, title, description, duration_minutes, price").eq("is_active", true)
+    if (accessIds.length > 0) fallback.not("id", "in", `(${accessIds.join(",")})`)
+    const res = await fallback
+    available = res.data as typeof available
+  }
 
   const submitted = (attempts ?? []).filter((a) => a.status === "submitted")
   const avgScore = submitted.length > 0

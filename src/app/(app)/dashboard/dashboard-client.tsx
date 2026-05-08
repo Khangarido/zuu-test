@@ -1,7 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import type React from "react"
+import { useState, useMemo, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -108,7 +107,7 @@ function FeaturedCard({ exam }: { exam: AvailableExam }) {
 }
 
 function FeaturedSection({ icon, title, exams, emptyText }: {
-  icon: React.ReactNode; title: string; exams: AvailableExam[]; emptyText: string
+  icon: ReactNode; title: string; exams: AvailableExam[]; emptyText: string
 }) {
   return (
     <div className="space-y-3">
