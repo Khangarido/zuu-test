@@ -20,7 +20,7 @@ async function requireAdmin() {
   if (!user) throw new Error("Нэвтрээгүй хэрэглэгч байна.")
   const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
   if (error) throw new Error(error.message)
-  if (!profile || profile.role !== "admin") throw new Error("Зөвхөн админ хэрэглэгч энэ үйлдлийг хийх боломжтой.")
+  if (!profile || !["admin", "superadmin"].includes(profile.role)) throw new Error("Зөвхөн админ хэрэглэгч энэ үйлдлийг хийх боломжтой.")
   return supabase
 }
 

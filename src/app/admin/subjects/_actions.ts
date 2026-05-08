@@ -35,7 +35,7 @@ async function requireAdmin() {
     throw new Error(error.message)
   }
 
-  if (!profile || profile.role !== "admin") {
+  if (!profile || !["admin", "superadmin"].includes(profile.role)) {
     throw new Error("Зөвхөн админ хэрэглэгч энэ үйлдлийг хийх боломжтой.")
   }
 
