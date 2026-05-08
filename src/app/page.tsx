@@ -294,7 +294,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div className="bg-[#0a0a0f] text-white min-h-screen font-sans antialiased">
+    <div className="bg-[#0a0a0f] text-white min-h-screen font-sans antialiased" suppressHydrationWarning>
 
       {/* ── NAVBAR ──────────────────────────────────────────────────────── */}
       <header

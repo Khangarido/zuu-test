@@ -209,4 +209,37 @@ export function DashboardClient({ owned, available, history, paymentStatus }: {
                       : <BuyButton examId={e.id} />}
                   </CardFooter>
                 </Card>
-            
+              ))}
+            </div>
+      )}
+
+      {tab === "history" && (
+        fh.length === 0
+          ? <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
+              <Trophy className="size-10 text-muted-foreground/50" />
+              <p className="text-sm">{q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Дүүргэсэн шалгалт байхгүй байна."}</p>
+            </CardContent></Card>
+          : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {fh.map(a => (
+                <Card key={a.id} className="hover:shadow-md transition-shadow border-border/60">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <CardTitle className="text-base leading-snug">{a.examTitle}</CardTitle>
+                      <ScoreBadge score={a.score} />
+                    </div>
+                    <CardDescription className="text-xs">
+                      {a.submittedAt ? new Date(a.submittedAt).toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" }) : "—"}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardFooter>
+                    <Button variant="outline" className="w-full cursor-pointer" size="sm" asChild>
+                      <Link href={`/results/${a.id}`}>Дэлгэрэнгүй харах<ArrowRight className="size-4" /></Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+      )}
+    </div>
+  )
+}

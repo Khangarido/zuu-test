@@ -120,4 +120,20 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
                   <span className="text-xs">Дундаж оноо</span>
                 </div>
                 <div className="text-2xl font-bold">
-                  {avgScore != null ? `
+                  {avgScore != null ? `${avgScore.toFixed(0)}%` : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DashboardClient
+          owned={owned}
+          available={availableExams}
+          history={history}
+          paymentStatus={paymentStatus}
+        />
+      </div>
+    </AppShell>
+  )
+}

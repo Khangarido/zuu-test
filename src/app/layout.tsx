@@ -22,10 +22,12 @@ export default function RootLayout({
   return (
     <html lang="mn" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster richColors position="top-center" />
-        </ThemeProvider>
+        <div suppressHydrationWarning>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            {children}
+            <Toaster richColors position="top-center" />
+          </ThemeProvider>
+        </div>
       </body>
     </html>
   )
