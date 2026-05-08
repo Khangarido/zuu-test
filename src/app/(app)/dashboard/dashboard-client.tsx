@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import type React from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -9,7 +10,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Clock, ShoppingCart, BookOpen, Trophy, ArrowRight, Play, Search, X, Loader2 } from "lucide-react"
+import { Clock, ShoppingCart, BookOpen, Trophy, ArrowRight, Play, Search, X, Loader2, Sparkles, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type OwnedExam = {
@@ -19,6 +20,7 @@ export type OwnedExam = {
 export type AvailableExam = {
   id: string; title: string; description: string | null
   duration_minutes: number; price: number
+  is_new: boolean; is_recommended: boolean
 }
 export type SubmittedAttempt = {
   id: string; examId: string; examTitle: string; score: number; submittedAt: string | null
@@ -72,10 +74,57 @@ function BuyButton({ examId }: { examId: string }) {
         className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer"
       >
         {loading
-          ? <><Loader2 className="size-4 animate-spin" />Ушаах...</>
+          ? <><Loader2 className="size-4 animate-spin" />Уншиж байна...</>
           : <><ShoppingCart className="size-4" />Худалдаж авах</>}
       </Button>
       {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
+    </div>
+  )
+}
+
+function FeaturedCard({ exam }: { exam: AvailableExam }) {
+  return (
+    <Card className="shrink-0 w-60 hover:shadow-md transition-shadow border-border/60">
+      <CardHeader className="pb-2 pt-4 px-4">
+        <CardTitle className="text-sm leading-snug line-clamp-2">{exam.title}</CardTitle>
+        <div className="flex items-center justify-between mt-1.5 gap-2">
+          {exam.price === 0
+            ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 text-xs">Үнэгүй</Badge>
+            : <Badge variant="outline" className="text-xs font-semibold">{formatMnt(exam.price)}</Badge>}
+          <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0">
+            <Clock className="size-3" />{exam.duration_minutes}м
+          </span>
+        </div>
+      </CardHeader>
+      <CardFooter className="pt-0 pb-4 px-4">
+        {exam.price === 0
+          ? <Button size="sm" className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer" asChild>
+              <Link href={`/exam/${exam.id}`}>Эхлүүлэх<ArrowRight className="size-3.5" /></Link>
+            </Button>
+          : <BuyButton examId={exam.id} />}
+      </CardFooter>
+    </Card>
+  )
+}
+
+function FeaturedSection({ icon, title, exams, emptyText }: {
+  icon: React.ReactNode; title: string; exams: AvailableExam[]; emptyText: string
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        {icon}
+        <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
+        {exams.length > 0 && (
+          <span className="text-xs text-muted-foreground">({exams.length})</span>
+        )}
+      </div>
+      {exams.length === 0
+        ? <p className="text-sm text-muted-foreground">{emptyText}</p>
+        : <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none">
+            {exams.map(e => <FeaturedCard key={e.id} exam={e} />)}
+          </div>
+      }
     </div>
   )
 }
@@ -98,8 +147,25 @@ export function DashboardClient({ owned, available, history, paymentStatus }: {
     { id: "history" as Tab,   label: "Өгсөн",                                                      count: fh.length },
   ]
 
+  const newExams = useMemo(() => available.filter(e => e.is_new), [available])
+  const recommendedExams = useMemo(() => available.filter(e => e.is_recommended), [available])
+
   return (
     <div className="space-y-4">
+      <div className="space-y-5">
+        <FeaturedSection
+          icon={<Sparkles className="size-4 text-indigo-500" />}
+          title="Шинэ шалгалт"
+          exams={newExams}
+          emptyText="Шинэ шалгалт одоогоор байхгүй."
+        />
+        <FeaturedSection
+          icon={<Star className="size-4 text-amber-500" />}
+          title="Санал болгох шалгалт"
+          exams={recommendedExams}
+          emptyText="Санал болгох шалгалт одоогоор байхгүй."
+        />
+      </div>
       {paymentStatus === "success" && (
         <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
           ✅ <span>Төлбөр амжилттай. Шалгалт таны жагсаалтад нэмэгдлээ!</span>

@@ -37,7 +37,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   let availableQuery = supabase
     .from("exam_sets")
-    .select("id, title, description, duration_minutes, price")
+    .select("id, title, description, duration_minutes, price, is_new, is_recommended")
     .eq("is_active", true)
   if (accessIds.length > 0) {
     availableQuery = availableQuery.not("id", "in", `(${accessIds.join(",")})`)
@@ -70,6 +70,8 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     description: (e.description as string | null) ?? null,
     duration_minutes: e.duration_minutes as number,
     price: (e.price as number) ?? 0,
+    is_new: (e.is_new as boolean) ?? false,
+    is_recommended: (e.is_recommended as boolean) ?? false,
   }))
 
   const history: SubmittedAttempt[] = submitted.map((a) => {

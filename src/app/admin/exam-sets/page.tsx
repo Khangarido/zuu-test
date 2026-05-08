@@ -25,6 +25,8 @@ type ExamSetRow = {
   price: number
   shuffle_questions: boolean
   is_active: boolean
+  is_new: boolean
+  is_recommended: boolean
   created_at: string
   subjects: { name: string } | { name: string }[] | null
 }
@@ -37,7 +39,7 @@ export default async function ExamSetsAdminPage() {
       supabase
         .from("exam_sets")
         .select(
-          "id, title, description, subject_id, duration_minutes, price, shuffle_questions, is_active, created_at, subjects(name)"
+          "id, title, description, subject_id, duration_minutes, price, shuffle_questions, is_active, is_new, is_recommended, created_at, subjects(name)"
         )
         .order("created_at", { ascending: false }),
       supabase.from("subjects").select("id, name").order("name", { ascending: true }),
@@ -160,6 +162,22 @@ export default async function ExamSetsAdminPage() {
                   className="size-4 rounded border"
                 />
                 Идэвхтэй эсэх
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  name="is_new"
+                  className="size-4 rounded border"
+                />
+                ✨ Шинэ шалгалт гэж тэмдэглэх
+              </label>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <input
+                  type="checkbox"
+                  name="is_recommended"
+                  className="size-4 rounded border"
+                />
+                ⭐ Санал болгох шалгалт гэж тэмдэглэх
               </label>
             </div>
             <div>

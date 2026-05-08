@@ -13,6 +13,8 @@ const examSetSchema = z.object({
   price: z.number({ error: "Үнэ зөв тоо байх ёстой." }).min(0),
   shuffle_questions: z.boolean(),
   is_active: z.boolean(),
+  is_new: z.boolean(),
+  is_recommended: z.boolean(),
 })
 
 async function requireAdmin() {
@@ -45,6 +47,8 @@ function parseExamSet(formData: FormData) {
     price: parseNumber(formData.get("price")),
     shuffle_questions: formData.get("shuffle_questions") === "on",
     is_active: formData.get("is_active") === "on",
+    is_new: formData.get("is_new") === "on",
+    is_recommended: formData.get("is_recommended") === "on",
   })
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Шалгалтын мэдээлэл буруу байна.")
   return parsed.data
@@ -61,6 +65,8 @@ export async function createExamSet(formData: FormData) {
     price: payload.price,
     shuffle_questions: payload.shuffle_questions,
     is_active: payload.is_active,
+    is_new: payload.is_new,
+    is_recommended: payload.is_recommended,
   })
   if (error) throw new Error(error.message)
   revalidatePath("/admin/exam-sets")
@@ -78,6 +84,8 @@ export async function updateExamSet(id: string, formData: FormData) {
     price: payload.price,
     shuffle_questions: payload.shuffle_questions,
     is_active: payload.is_active,
+    is_new: payload.is_new,
+    is_recommended: payload.is_recommended,
   }).eq("id", id)
   if (error) throw new Error(error.message)
   revalidatePath("/admin/exam-sets")

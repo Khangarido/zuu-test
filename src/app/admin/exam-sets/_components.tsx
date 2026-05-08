@@ -34,6 +34,8 @@ type ExamSet = {
   price: number
   shuffle_questions: boolean
   is_active: boolean
+  is_new: boolean
+  is_recommended: boolean
   subject_id: string
   subject_name: string
 }
@@ -245,6 +247,24 @@ export function ExamSetCrudCard({
                       className="size-4 rounded border"
                     />
                     Идэвхтэй эсэх
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      name="is_new"
+                      defaultChecked={examSet.is_new}
+                      className="size-4 rounded border"
+                    />
+                    ✨ Шинэ шалгалт гэж тэмдэглэх
+                  </label>
+                  <label className="flex items-center gap-2 text-sm font-medium">
+                    <input
+                      type="checkbox"
+                      name="is_recommended"
+                      defaultChecked={examSet.is_recommended}
+                      className="size-4 rounded border"
+                    />
+                    ⭐ Санал болгох шалгалт гэж тэмдэглэх
                   </label>
                 </div>
                 <SubmitButton pendingText="Хадгалж байна...">Хадгалах</SubmitButton>
