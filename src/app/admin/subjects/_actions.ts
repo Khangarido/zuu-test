@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
 const subjectSchema = z.object({
   name: z.string().trim().min(2, "Нэр хамгийн багадаа 2 тэмдэгт байна.").max(100, "Нэр хамгийн ихдээ 100 тэмдэгт байна."),
@@ -39,7 +40,7 @@ async function requireAdmin() {
     throw new Error("Зөвхөн админ хэрэглэгч энэ үйлдлийг хийх боломжтой.")
   }
 
-  return supabase
+  return getSupabaseAdmin()
 }
 
 function normalizeOptional(value: FormDataEntryValue | null) {

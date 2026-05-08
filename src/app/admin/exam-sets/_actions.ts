@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
 const examSetSchema = z.object({
   title: z.string().trim().min(2, "Гарчиг хамгийн багадаа 2 тэмдэгт байна.").max(200, "Гарчиг хамгийн ихдээ 200 тэмдэгт байна."),
@@ -21,7 +22,7 @@ async function requireAdmin() {
   const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
   if (error) throw new Error(error.message)
   if (!profile || !["admin", "superadmin"].includes(profile.role)) throw new Error("Зөвхөн админ хэрэглэгч энэ үйлдлийг хийх боломжтой.")
-  return supabase
+  return getSupabaseAdmin()
 }
 
 function normalizeOptional(value: FormDataEntryValue | null) {

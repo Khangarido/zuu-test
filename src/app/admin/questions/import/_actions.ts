@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { parseQuestions } from "@/lib/parse-questions"
 
 type OptionLabel = "A" | "B" | "C" | "D" | "E"
@@ -25,7 +26,7 @@ async function requireAdmin() {
   const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle()
   if (error) throw new Error(error.message)
   if (!profile || !["admin", "superadmin"].includes(profile.role)) throw new Error("Зөвхөн админ хэрэглэгч энэ үйлдлийг хийх боломжтой.")
-  return supabase
+  return getSupabaseAdmin()
 }
 
 function resolveTopicId(
