@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { deleteQuestion, updateQuestion } from "./_actions"
 import { ExamSetPicker, QuestionCrudCard, CreateQuestionForm } from "./_components"
 import { Upload, HelpCircle, PlusCircle, Filter } from "lucide-react"
@@ -61,7 +61,7 @@ export default async function QuestionsAdminPage({
   const params = await Promise.resolve(searchParams ?? {})
   const selectedExamSetId = params.exam_set_id ?? ""
   const selectedTopicId = params.topic_id ?? ""
-  const supabase = await createClient()
+  const supabase = getSupabaseAdmin()
 
   const [
     { data: examSets, error: examSetsError },

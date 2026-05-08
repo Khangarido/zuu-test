@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import {
   createSubject,
   createTopic,
@@ -28,7 +28,7 @@ type TopicRow = {
 }
 
 export default async function SubjectsAdminPage() {
-  const supabase = await createClient()
+  const supabase = getSupabaseAdmin()
 
   const { data: subjects, error: subjectsError } = await supabase
     .from("subjects")

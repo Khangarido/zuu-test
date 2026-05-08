@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 export const dynamic = "force-dynamic";
 
 export default async function PaymentsAdminPage() {
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
   const { data: payments } = await supabase
     .from("payments")
     .select("id, amount, status, created_at, transaction_id, user:profiles(full_name, email), exam_set:exam_sets(title)")

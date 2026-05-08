@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import {
   createExamSet,
   deleteExamSet,
@@ -30,7 +30,7 @@ type ExamSetRow = {
 }
 
 export default async function ExamSetsAdminPage() {
-  const supabase = await createClient()
+  const supabase = getSupabaseAdmin()
 
   const [{ data: examSets, error: examSetsError }, { data: subjects, error: subjectsError }] =
     await Promise.all([

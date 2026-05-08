@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ClipboardList, Wallet, Activity } from "lucide-react";
 
@@ -9,7 +9,7 @@ function formatMnt(amount: number) {
 }
 
 export default async function AdminHomePage() {
-  const supabase = await createClient();
+  const supabase = getSupabaseAdmin();
 
   const [studentsRes, examsRes, paymentsRes, attemptsRes] = await Promise.all([
     supabase

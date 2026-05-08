@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation"
 import Link from "next/link"
-import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -40,7 +39,7 @@ function gradeLabel(g: string | null) {
 
 /* ── Page ───────────────────────────────────────────────────────────────── */
 export default async function SuperadminDashboardPage() {
-  const supabase = await createClient()
+  const supabase = getSupabaseAdmin()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
