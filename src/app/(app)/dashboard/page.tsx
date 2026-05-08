@@ -50,7 +50,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     : null
 
   const fullName  = (profile?.full_name as string | null) ?? ""
-  const firstName = (profile?.first_name as string | null) || fullName.split(" ").at(-1) || "\u0441\u0443\u0440\u0430\u0433\u0447"
+  const firstName = (profile?.first_name as string | null) || fullName.split(" ").at(-1) || "сурагч"
   const role      = profile?.role === "admin" || profile?.role === "superadmin" ? "admin" : "student"
 
   const owned: OwnedExam[] = (accessRows ?? []).map((row) => {
@@ -76,7 +76,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     const e = a.exam_set as unknown as { id: string; title: string } | null
     return {
       id: a.id as string, examId: e?.id ?? "",
-      examTitle: e?.title ?? "\u2014",
+      examTitle: e?.title ?? "—",
       score: (a.score_percentage as number) ?? 0,
       submittedAt: (a.submitted_at as string | null) ?? null,
     }
@@ -96,39 +96,28 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           <div className="absolute -top-16 -right-16 size-64 rounded-full bg-white/5" />
           <div className="absolute -bottom-20 -left-10 size-56 rounded-full bg-white/5" />
           <div className="relative z-10">
-            <p className="text-indigo-200 text-sm font-medium mb-1">\u0421\u0430\u0439\u043d \u0431\u0430\u0439\u043d\u0430 \u0443\u0443,</p>
+            <p className="text-indigo-200 text-sm font-medium mb-1">Сайн байна уу,</p>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{firstName}</h1>
-            <p className="mt-2 text-indigo-200 text-sm">\u04e8\u043d\u04e9\u04e9\u0434\u04e9\u0440 \u044f\u043c\u0430\u0440 \u0448\u0430\u043b\u0433\u0430\u043b\u0442 \u04e9\u0433\u04e9\u0445 \u0432\u044d?</p>
+            <p className="mt-2 text-indigo-200 text-sm">Өнөөдөр ямар шалгалт өгөх вэ?</p>
             <div className="mt-6 grid grid-cols-3 gap-4 sm:gap-6">
               <div className="rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4">
                 <div className="flex items-center gap-2 text-indigo-200 mb-1">
                   <BookOpen className="size-3.5" />
-                  <span className="text-xs">\u041c\u0438\u043d\u0438\u0439 \u0448\u0430\u043b\u0433\u0430\u043b\u0442</span>
+                  <span className="text-xs">Миний шалгалт</span>
                 </div>
                 <div className="text-2xl font-bold">{owned.length}</div>
               </div>
               <div className="rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4">
                 <div className="flex items-center gap-2 text-indigo-200 mb-1">
                   <CheckCircle2 className="size-3.5" />
-                  <span className="text-xs">\u0414\u0443\u0443\u0441\u0441\u0430\u043d</span>
+                  <span className="text-xs">Дууссан</span>
                 </div>
                 <div className="text-2xl font-bold">{submitted.length}</div>
               </div>
               <div className="rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4">
                 <div className="flex items-center gap-2 text-indigo-200 mb-1">
                   <TrendingUp className="size-3.5" />
-                  <span className="text-xs">\u0414\u0443\u043d\u0434\u0430\u0436 \u043e\u043d\u043e\u043e</span>
+                  <span className="text-xs">Дундаж оноо</span>
                 </div>
                 <div className="text-2xl font-bold">
-                  {avgScore != null ? `${avgScore.toFixed(0)}%` : "\u2014"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <DashboardClient owned={owned} available={availableExams} history={history} paymentStatus={paymentStatus} />
-      </div>
-    </AppShell>
-  )
-}
+                  {avgScore != null ? `

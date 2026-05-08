@@ -31,14 +31,14 @@ function scoreColor(s: number) {
 }
 
 function timeTaken(started: string | null, submitted: string | null) {
-  if (!started || !submitted) return "\u2014"
+  if (!started || !submitted) return "—"
   const ms = new Date(submitted).getTime() - new Date(started).getTime()
-  if (ms <= 0) return "\u2014"
-  return `${Math.floor(ms / 60000)}\u043c ${Math.floor((ms % 60000) / 1000)}\u0441`
+  if (ms <= 0) return "—"
+  return `${Math.floor(ms / 60000)}м ${Math.floor((ms % 60000) / 1000)}с`
 }
 
 function formatDate(iso: string | null) {
-  if (!iso) return "\u2014"
+  if (!iso) return "—"
   return new Date(iso).toLocaleDateString("mn-MN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
 }
 
@@ -62,14 +62,14 @@ export function ResultsTable({ students, examTitle }: { students: StudentResult[
   const avgScore  = students.length ? students.reduce((s, r) => s + r.score_percentage, 0) / students.length : 0
 
   function handleExport() {
-    const headers = ["\u041d\u044d\u0440", "@\u0445\u044d\u0440\u044d\u0433\u043b\u044d\u0433\u0447\u0438\u0439\u043d \u043d\u044d\u0440", "\u041e\u043d\u043e\u043e %", "\u0417\u04e9\u0432/\u041d\u0438\u0439\u0442", "\u0425\u0443\u0433\u0430\u0446\u0430\u0430", "\u041e\u0433\u043d\u043e\u043e", "Tier"]
+    const headers = ["Нэр", "@хэрэглэгчийн нэр", "Оноо %", "Зөв/Нийт", "Хугацаа", "Огноо", "Tier"]
     const rows = sorted.map((s) => [
       s.full_name ?? "", s.username ? `@${s.username}` : "",
       s.score_percentage.toFixed(1), `${s.correct_count}/${s.total_count}`,
       timeTaken(s.started_at, s.submitted_at), formatDate(s.submitted_at), s.rank_tier ?? "Bronze"
     ])
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n")
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" })
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url; a.download = `${examTitle}_results.csv`; a.click()
@@ -79,17 +79,17 @@ export function ResultsTable({ students, examTitle }: { students: StudentResult[
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-        <span><span className="font-semibold text-foreground">{students.length}</span> \u043e\u0440\u043e\u043b\u0446\u043e\u0433\u0447</span>
-        <span>\u0414\u0443\u043d\u0434\u0430\u0436: <span className={cn("font-semibold", scoreColor(avgScore))}>{avgScore.toFixed(1)}%</span></span>
-        <span>\u0422\u044d\u043d\u0446\u0441\u044d\u043d (\u226570%): <span className="font-semibold text-emerald-600 dark:text-emerald-400">{passCount} ({passRate.toFixed(0)}%)</span></span>
+        <span><span className="font-semibold text-foreground">{students.length}</span> оролцогч</span>
+        <span>Дундаж: <span className={cn("font-semibold", scoreColor(avgScore))}>{avgScore.toFixed(1)}%</span></span>
+        <span>Тэнцсэн (≥70%): <span className="font-semibold text-emerald-600 dark:text-emerald-400">{passCount} ({passRate.toFixed(0)}%)</span></span>
       </div>
       <div className="flex items-center justify-between gap-2">
         <div className="flex gap-1">
-          <Button size="sm" variant={sort === "score" ? "default" : "outline"} className="cursor-pointer" onClick={() => setSort("score")}>\u041e\u043d\u043e\u043e\u0433\u043e\u043e\u0440</Button>
-          <Button size="sm" variant={sort === "date" ? "default" : "outline"} className="cursor-pointer" onClick={() => setSort("date")}>\u041e\u0433\u043d\u043e\u043e\u0433\u043e\u043e\u0440</Button>
+          <Button size="sm" variant={sort === "score" ? "default" : "outline"} className="cursor-pointer" onClick={() => setSort("score")}>Оноогоор</Button>
+          <Button size="sm" variant={sort === "date" ? "default" : "outline"} className="cursor-pointer" onClick={() => setSort("date")}>Огноогоор</Button>
         </div>
         <Button size="sm" variant="outline" className="cursor-pointer gap-1.5" onClick={handleExport}>
-          <Download className="size-3.5" />CSV \u044d\u043a\u0441\u043f\u043e\u0440\u0442
+          <Download className="size-3.5" />CSV экспорт
         </Button>
       </div>
       <div className="overflow-x-auto rounded-lg border border-border/60">
@@ -97,11 +97,11 @@ export function ResultsTable({ students, examTitle }: { students: StudentResult[
           <thead>
             <tr className="border-b bg-muted/50 text-muted-foreground">
               <th className="px-4 py-3 text-left font-medium w-8">#</th>
-              <th className="px-4 py-3 text-left font-medium">\u0421\u0443\u0440\u0430\u0433\u0447</th>
-              <th className="px-4 py-3 text-center font-medium">\u041e\u043d\u043e\u043e</th>
-              <th className="px-4 py-3 text-center font-medium">\u0417\u04e9\u0432/\u041d\u0438\u0439\u0442</th>
-              <th className="px-4 py-3 text-center font-medium">\u0425\u0443\u0433\u0430\u0446\u0430\u0430</th>
-              <th className="px-4 py-3 text-center font-medium">\u041e\u0433\u043d\u043e\u043e</th>
+              <th className="px-4 py-3 text-left font-medium">Сурагч</th>
+              <th className="px-4 py-3 text-center font-medium">Оноо</th>
+              <th className="px-4 py-3 text-center font-medium">Зөв/Нийт</th>
+              <th className="px-4 py-3 text-center font-medium">Хугацаа</th>
+              <th className="px-4 py-3 text-center font-medium">Огноо</th>
               <th className="px-4 py-3 text-center font-medium">Tier</th>
             </tr>
           </thead>
@@ -116,7 +116,7 @@ export function ResultsTable({ students, examTitle }: { students: StudentResult[
                       <AvatarFallback className="text-xs bg-primary/10 text-primary">{initials(s.full_name, s.username)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium leading-tight">{s.full_name ?? s.username ?? "\u041d\u044d\u0440\u0433\u04af\u0439"}</p>
+                      <p className="font-medium leading-tight">{s.full_name ?? s.username ?? "Нэргүй"}</p>
                       {s.username && <p className="text-xs text-muted-foreground">@{s.username}</p>}
                     </div>
                   </div>
@@ -134,7 +134,7 @@ export function ResultsTable({ students, examTitle }: { students: StudentResult[
             ))}
           </tbody>
         </table>
-        {sorted.length === 0 && <div className="py-12 text-center text-muted-foreground text-sm">\u042d\u043d\u044d \u0448\u0430\u043b\u0433\u0430\u043b\u0442\u0430\u043d\u0434 \u043e\u0440\u043e\u043b\u0446\u043e\u0433\u0447 \u0431\u0430\u0439\u0445\u0433\u04af\u0439 \u0431\u0430\u0439\u043d\u0430.</div>}
+        {sorted.length === 0 && <div className="py-12 text-center text-muted-foreground text-sm">Энэ шалгалтанд оролцогч байхгүй байна.</div>}
       </div>
     </div>
   )

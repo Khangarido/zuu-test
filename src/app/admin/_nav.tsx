@@ -15,13 +15,13 @@ import {
 } from "lucide-react"
 
 const navItems = [
-  { href: "/admin", label: "\u0421\u0430\u043c\u0431\u0430\u0440", icon: LayoutDashboard, exact: true },
-  { href: "/admin/subjects", label: "\u0425\u0438\u0447\u044d\u044d\u043b & \u0421\u044d\u0434\u044d\u0432", icon: BookOpen },
-  { href: "/admin/exam-sets", label: "\u0428\u0430\u043b\u0433\u0430\u043b\u0442", icon: ClipboardList },
-  { href: "/admin/questions", label: "\u0410\u0441\u0443\u0443\u043b\u0442", icon: HelpCircle },
-  { href: "/admin/results", label: "\u0414\u04af\u043d\u0433\u0438\u0439\u043d \u0442\u0430\u0439\u043b\u0430\u043d", icon: BarChart2 },
-  { href: "/admin/students", label: "\u0421\u0443\u0440\u0430\u0433\u0447\u0438\u0434", icon: Users },
-  { href: "/admin/payments", label: "\u0422\u04e9\u043b\u0431\u04e9\u0440", icon: CreditCard },
+  { href: "/admin", label: "Самбар", icon: LayoutDashboard, exact: true },
+  { href: "/admin/subjects", label: "Хичээл & Сэдэв", icon: BookOpen },
+  { href: "/admin/exam-sets", label: "Шалгалт", icon: ClipboardList },
+  { href: "/admin/questions", label: "Асуулт", icon: HelpCircle },
+  { href: "/admin/results", label: "Дүнгийн тайлан", icon: BarChart2 },
+  { href: "/admin/students", label: "Сурагчид", icon: Users },
+  { href: "/admin/payments", label: "Төлбөр", icon: CreditCard },
 ]
 
 export function AdminNav({ role }: { role?: string }) {
