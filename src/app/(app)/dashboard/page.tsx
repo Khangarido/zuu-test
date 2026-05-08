@@ -7,7 +7,9 @@ import type { OwnedExam, AvailableExam, SubmittedAttempt } from "./dashboard-cli
 
 export const dynamic = "force-dynamic"
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams?: Promise<{ payment?: string }> | { payment?: string } }) {
+  const sp = await Promise.resolve(searchParams ?? {})
+  const paymentStatus = sp.payment === "success" ? "success" : sp.payment === "cancelled" ? "cancelled" : null
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
@@ -125,7 +127,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <DashboardClient owned={owned} available={availableExams} history={history} />
+        <DashboardClient owned={owned} available={availableExams} history={history} paymentStatus={paymentStatus} />
       </div>
     </AppShell>
   )

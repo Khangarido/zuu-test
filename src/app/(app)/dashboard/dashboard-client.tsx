@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -8,7 +9,7 @@ import {
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Clock, ShoppingCart, BookOpen, Trophy, ArrowRight, Play, Search, X } from "lucide-react"
+import { Clock, ShoppingCart, BookOpen, Trophy, ArrowRight, Play, Search, X, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export type OwnedExam = {
@@ -36,8 +37,52 @@ function ScoreBadge({ score }: { score: number }) {
 
 type Tab = "owned" | "available" | "history"
 
-export function DashboardClient({ owned, available, history }: {
+function BuyButton({ examId }: { examId: string }) {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleBuy() {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch("/api/byl/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ examSetId: examId }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.url) {
+        setError(json.error ?? "Алдаа гарлын алдаа гарлаа.")
+        setLoading(false)
+        return
+      }
+      router.push(json.url)
+    } catch {
+      setError("Холбоос алдаа гарлаа.")
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="w-full space-y-1.5">
+      <Button
+        onClick={handleBuy}
+        disabled={loading}
+        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer"
+      >
+        {loading
+          ? <><Loader2 className="size-4 animate-spin" />Ушаах...</>
+          : <><ShoppingCart className="size-4" />Худалдаж авах</>}
+      </Button>
+      {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
+    </div>
+  )
+}
+
+export function DashboardClient({ owned, available, history, paymentStatus }: {
   owned: OwnedExam[]; available: AvailableExam[]; history: SubmittedAttempt[]
+  paymentStatus?: "success" | "cancelled" | null
 }) {
   const [tab, setTab] = useState<Tab>("owned")
   const [query, setQuery] = useState("")
@@ -55,6 +100,16 @@ export function DashboardClient({ owned, available, history }: {
 
   return (
     <div className="space-y-4">
+      {paymentStatus === "success" && (
+        <div className="rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-4 py-3 text-sm text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+          ✅ <span>Төлбөр амжилттай. Шалгалт таны жагсаалтад нэмэгдлээ!</span>
+        </div>
+      )}
+      {paymentStatus === "cancelled" && (
+        <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
+          ⚠️ <span>Төлбөр цуцлагдлаа. Дахин оролдохдоо "Худалдаж авах" дарна уу.</span>
+        </div>
+      )}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
         <Input value={query} onChange={e => setQuery(e.target.value)}
@@ -151,9 +206,7 @@ export function DashboardClient({ owned, available, history }: {
                       ? <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer" asChild>
                           <Link href={`/exam/${e.id}`}>\u042d\u0445\u043b\u04af\u04af\u043b\u044d\u0445<ArrowRight className="size-4" /></Link>
                         </Button>
-                      : <Button variant="outline" className="w-full cursor-not-allowed opacity-60" disabled>
-                          <ShoppingCart className="size-4" />\u0423\u0434\u0430\u0445\u0433\u04af\u0439 \u043d\u044d\u044d\u043b\u0442\u0442\u044d\u0439 \u0431\u043e\u043b\u043d\u043e
-                        </Button>}
+                      : <BuyButton examId={e.id} />}
                   </CardFooter>
                 </Card>
               ))}
