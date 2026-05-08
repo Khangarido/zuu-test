@@ -23,7 +23,7 @@ export type SubmittedAttempt = {
   id: string; examId: string; examTitle: string; score: number; submittedAt: string | null
 }
 
-function formatMnt(n: number) { return new Intl.NumberFormat("mn-MN").format(n) + "\u20ae" }
+function formatMnt(n: number) { return new Intl.NumberFormat("mn-MN").format(n) + "₮" }
 
 function ScoreBadge({ score }: { score: number }) {
   const c = score >= 70
@@ -48,9 +48,9 @@ export function DashboardClient({ owned, available, history }: {
   const fh = useMemo(() => q ? history.filter(a => a.examTitle.toLowerCase().includes(q)) : history, [history, q])
 
   const tabs = [
-    { id: "owned" as Tab,     label: "\u041c\u0438\u043d\u0438\u0439 \u0448\u0430\u043b\u0433\u0430\u043b\u0442",   count: fo.length },
-    { id: "available" as Tab, label: "\u041d\u044d\u044d\u043b\u0442\u0442\u044d\u0439",                                 count: fa.length },
-    { id: "history" as Tab,   label: "\u04e8\u0433\u0441\u04e9\u043d",                                                      count: fh.length },
+    { id: "owned" as Tab,     label: "Миний шалгалт",   count: fo.length },
+    { id: "available" as Tab, label: "Нээлттэй",                                 count: fa.length },
+    { id: "history" as Tab,   label: "Өгсөн",                                                      count: fh.length },
   ]
 
   return (
@@ -58,7 +58,7 @@ export function DashboardClient({ owned, available, history }: {
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
         <Input value={query} onChange={e => setQuery(e.target.value)}
-          placeholder="\u0428\u0430\u043b\u0433\u0430\u043b\u0442 \u0445\u0430\u0439\u0445..."
+          placeholder="Шалгалт хайх..."
           className="pl-9 pr-9 h-10 bg-background" />
         {query && (
           <button onClick={() => setQuery("")}
@@ -68,7 +68,7 @@ export function DashboardClient({ owned, available, history }: {
         )}
       </div>
 
-      {q && <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">{fo.length + fa.length + fh.length}</span> \u04af\u0440 \u0434\u04af\u043d</p>}
+      {q && <p className="text-sm text-muted-foreground"><span className="font-medium text-foreground">{fo.length + fa.length + fh.length}</span> үр дүн</p>}
 
       <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit">
         {tabs.map(t => (
@@ -88,7 +88,7 @@ export function DashboardClient({ owned, available, history }: {
         fo.length === 0
           ? <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
               <BookOpen className="size-10 text-muted-foreground/50" />
-              <p className="text-sm">{q ? "\u0425\u0430\u0439\u043b\u0442\u0430\u0434 \u0442\u043e\u0445\u0438\u0440\u043e\u0445 \u0448\u0430\u043b\u0433\u0430\u043b\u0442 \u043e\u043b\u0434\u0441\u043e\u043d\u0433\u04af\u0439." : "\u0422\u0430\u043d\u0434 \u043e\u0434\u043e\u043e\u0433\u043e\u043e\u0440 \u0445\u0443\u0434\u0430\u043b\u0434\u0430\u0436 \u0430\u0432\u0441\u0430\u043d \u0448\u0430\u043b\u0433\u0430\u043b\u0442 \u0430\u043b\u0433\u0430."}</p>
+              <p className="text-sm">{q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Танд одоогоор худалдаж авсан шалгалт алга."}</p>
             </CardContent></Card>
           : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {fo.map(e => (
@@ -102,21 +102,21 @@ export function DashboardClient({ owned, available, history }: {
                   </CardHeader>
                   <CardContent className="pb-3">
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Clock className="size-3.5" /><span>{e.duration_minutes} \u043c\u0438\u043d\u0443\u0442</span>
+                      <Clock className="size-3.5" /><span>{e.duration_minutes} минут</span>
                     </div>
                   </CardContent>
                   <CardFooter>
                     {e.lastAttemptId
                       ? <div className="flex w-full gap-2">
                           <Button variant="outline" size="sm" className="flex-1 cursor-pointer" asChild>
-                            <Link href={`/results/${e.lastAttemptId}`}>\u04ae\u0440 \u0434\u04af\u043d \u0445\u0430\u0440\u0430\u0445</Link>
+                            <Link href={`/results/${e.lastAttemptId}`}>Үр дүн харах</Link>
                           </Button>
                           <Button size="sm" className="cursor-pointer" asChild>
                             <Link href={`/exam/${e.id}?retake=1`}><Play className="size-3.5" /></Link>
                           </Button>
                         </div>
                       : <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer" asChild>
-                          <Link href={`/exam/${e.id}`}>\u042d\u0445\u043b\u04af\u04af\u043b\u044d\u0445<ArrowRight className="size-4" /></Link>
+                          <Link href={`/exam/${e.id}`}>Эхлүүлэх<ArrowRight className="size-4" /></Link>
                         </Button>}
                   </CardFooter>
                 </Card>
@@ -127,7 +127,7 @@ export function DashboardClient({ owned, available, history }: {
       {tab === "available" && (
         fa.length === 0
           ? <Card className="border-dashed"><CardContent className="py-10 text-center text-sm text-muted-foreground">
-              {q ? "\u0425\u0430\u0439\u043b\u0442\u0430\u0434 \u0442\u043e\u0445\u0438\u0440\u043e\u0445 \u0448\u0430\u043b\u0433\u0430\u043b\u0442 \u043e\u043b\u0434\u0441\u043e\u043d\u0433\u04af\u0439." : "\u0428\u0438\u043d\u044d \u0448\u0430\u043b\u0433\u0430\u043b\u0442\u0443\u0443\u0434 \u0443\u0434\u0430\u0445\u0433\u04af\u0439 \u0433\u0430\u0440\u043d\u0430."}
+              {q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Шинэ шалгалтууд удахгүй гарна."}
             </CardContent></Card>
           : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {fa.map(e => (
@@ -136,23 +136,23 @@ export function DashboardClient({ owned, available, history }: {
                     <div className="flex items-start justify-between gap-2">
                       <CardTitle className="text-base leading-snug">{e.title}</CardTitle>
                       {e.price === 0
-                        ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 shrink-0 text-xs">\u04ae\u043d\u044d\u0433\u04af\u0439</Badge>
+                        ? <Badge className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-0 shrink-0 text-xs">Үнэгүй</Badge>
                         : <Badge variant="outline" className="shrink-0 text-xs font-semibold">{formatMnt(e.price)}</Badge>}
                     </div>
                     {e.description && <CardDescription className="line-clamp-2 text-xs">{e.description}</CardDescription>}
                   </CardHeader>
                   <CardContent className="pb-3">
                     <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Clock className="size-3.5" /><span>{e.duration_minutes} \u043c\u0438\u043d\u0443\u0442</span>
+                      <Clock className="size-3.5" /><span>{e.duration_minutes} минут</span>
                     </div>
                   </CardContent>
                   <CardFooter>
                     {e.price === 0
                       ? <Button className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer" asChild>
-                          <Link href={`/exam/${e.id}`}>\u042d\u0445\u043b\u04af\u04af\u043b\u044d\u0445<ArrowRight className="size-4" /></Link>
+                          <Link href={`/exam/${e.id}`}>Эхлүүлэх<ArrowRight className="size-4" /></Link>
                         </Button>
                       : <Button variant="outline" className="w-full cursor-not-allowed opacity-60" disabled>
-                          <ShoppingCart className="size-4" />\u0423\u0434\u0430\u0445\u0433\u04af\u0439 \u043d\u044d\u044d\u043b\u0442\u0442\u044d\u0439 \u0431\u043e\u043b\u043d\u043e
+                          <ShoppingCart className="size-4" />Удахгүй нээлттэй болно
                         </Button>}
                   </CardFooter>
                 </Card>
@@ -164,7 +164,7 @@ export function DashboardClient({ owned, available, history }: {
         fh.length === 0
           ? <Card className="border-dashed"><CardContent className="flex flex-col items-center gap-3 py-12 text-center text-muted-foreground">
               <Trophy className="size-10 text-muted-foreground/50" />
-              <p className="text-sm">{q ? "\u0425\u0430\u0439\u043b\u0442\u0430\u0434 \u0442\u043e\u0445\u0438\u0440\u043e\u0445 \u0448\u0430\u043b\u0433\u0430\u043b\u0442 \u043e\u043b\u0434\u0441\u043e\u043d\u0433\u04af\u0439." : "\u0414\u04af\u04af\u0440\u0433\u044d\u0441\u044d\u043d \u0448\u0430\u043b\u0433\u0430\u043b\u0442 \u0431\u0430\u0439\u0445\u0433\u04af\u0439 \u0431\u0430\u0439\u043d\u0430."}</p>
+              <p className="text-sm">{q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Дүүргэсэн шалгалт байхгүй байна."}</p>
             </CardContent></Card>
           : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {fh.map(a => (
@@ -175,12 +175,12 @@ export function DashboardClient({ owned, available, history }: {
                       <ScoreBadge score={a.score} />
                     </div>
                     <CardDescription className="text-xs">
-                      {a.submittedAt ? new Date(a.submittedAt).toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" }) : "\u2014"}
+                      {a.submittedAt ? new Date(a.submittedAt).toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" }) : "—"}
                     </CardDescription>
                   </CardHeader>
                   <CardFooter>
                     <Button variant="outline" className="w-full cursor-pointer" size="sm" asChild>
-                      <Link href={`/results/${a.id}`}>\u0414\u044d\u043b\u0433\u044d\u0440\u044d\u043d\u0433\u04af\u0439 \u0445\u0430\u0440\u0430\u0445<ArrowRight className="size-4" /></Link>
+                      <Link href={`/results/${a.id}`}>Дэлгэрэнгүй харах<ArrowRight className="size-4" /></Link>
                     </Button>
                   </CardFooter>
                 </Card>
