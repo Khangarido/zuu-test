@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     .eq("id", examSetId)
     .maybeSingle()
   if (!examSet) return NextResponse.json({ error: "Exam not found" }, { status: 404 })
+  if (!examSet.price || examSet.price <= 0) return NextResponse.json({ error: "This exam is free" }, { status: 400 })
 
   const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://zuutest.site").trim()
 
@@ -28,7 +29,13 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        items: [{ price_id: Number(process.env.BYL_PRICE_ID), quantity: 1 }],
+        items: [{
+          price_data: {
+            unit_amount: examSet.price,
+            product_data: { name: examSet.title },
+          },
+          quantity: 1,
+        }],
         success_url: `${siteUrl}/dashboard?payment=success`,
         cancel_url: `${siteUrl}/dashboard?payment=cancelled`,
         client_reference_id: `${user.id}:${examSetId}`,
