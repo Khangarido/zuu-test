@@ -39,34 +39,39 @@ export async function POST(req: NextRequest) {
 
   if (type === "checkout.completed" || type === "invoice.paid") {
     const ref = (data?.client_reference_id ?? "") as string
-    const parts = ref.split(":")
-    const userId = decodeUUID(parts[0])
-    const examSetId = decodeUUID(parts[1])
-
-    if (userId && examSetId) {
-      const admin = getSupabaseAdmin()
-
-      // Grant access
-      const { error: accessErr } = await admin
-        .from("access")
-        .upsert({ user_id: userId, exam_set_id: examSetId }, { onConflict: "user_id,exam_set_id" })
-
-      if (accessErr) console.error("byl webhook: access upsert error", accessErr)
-
-      // Record payment
-      const amount = (data?.amount as number) ?? (data?.total as number) ?? 0
-      const transactionId = String(data?.id ?? "")
-
-      const { error: payErr } = await admin.from("payments").insert({
-        user_id: userId,
-        exam_set_id: examSetId,
-        amount,
-        status: "completed",
-        transaction_id: transactionId,
-      })
-
-      if (payErr) console.error("byl webhook: payment insert error", payErr)
+    if (!ref) {
+      console.error("byl webhook: missing client_reference_id")
+      return NextResponse.json({ ok: true })
     }
+
+    const admin = getSupabaseAdmin()
+    const amount = (data?.amount as number) ?? (data?.total as number) ?? 0
+    const transactionId = String(data?.id ?? "")
+
+    // New format: single encoded payment UUID
+    const paymentId = decodeUUID(ref)
+    const { data: payment, error: payLookupErr } = await admin
+      .from("payments")
+      .select("user_id, exam_set_id")
+      .eq("id", paymentId)
+      .maybeSingle()
+
+    if (payLookupErr || !payment) {
+      console.error("byl webhook: payment record not found", paymentId, payLookupErr)
+      return NextResponse.json({ ok: true })
+    }
+
+    const { user_id: userId, exam_set_id: examSetId } = payment
+
+    // Update payment to completed
+    await admin.from("payments").update({ status: "completed", transaction_id: transactionId, amount }).eq("id", paymentId)
+
+    // Grant access
+    const { error: accessErr } = await admin
+      .from("access")
+      .upsert({ user_id: userId, exam_set_id: examSetId }, { onConflict: "user_id,exam_set_id" })
+
+    if (accessErr) console.error("byl webhook: access upsert error", accessErr)
   }
 
   return NextResponse.json({ ok: true })

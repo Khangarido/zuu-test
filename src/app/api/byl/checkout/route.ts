@@ -28,6 +28,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Payment not configured" }, { status: 500 })
   }
 
+  // Create a pending payment record — its unique UUID becomes the checkout reference
+  const { data: pendingPayment, error: pendingErr } = await admin
+    .from("payments")
+    .insert({ user_id: user.id, exam_set_id: examSetId, amount: examSet.price, status: "pending", transaction_id: "" })
+    .select("id")
+    .single()
+  if (pendingErr || !pendingPayment) {
+    console.error("byl checkout: failed to create pending payment", pendingErr)
+    return NextResponse.json({ error: "Failed to initiate payment" }, { status: 500 })
+  }
+
   const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://zuutest.site").trim()
 
   const bylRes = await fetch(
@@ -49,7 +60,7 @@ export async function POST(req: NextRequest) {
         }],
         success_url: `${siteUrl}/dashboard?payment=success`,
         cancel_url: `${siteUrl}/dashboard?payment=cancelled`,
-        client_reference_id: `${encodeUUID(user.id)}:${encodeUUID(examSetId)}`,
+        client_reference_id: encodeUUID(pendingPayment.id),
       }),
     }
   )
