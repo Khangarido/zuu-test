@@ -7,16 +7,20 @@ export async function finaliseProfile(
   avatarUrl: string | null,
   username: string,
   grade: string,
-  subjects: string[]
+  subjects: string[],
+  firstName: string,
+  lastName: string,
 ): Promise<void> {
   const admin = getSupabaseAdmin()
-  await admin
-    .from("profiles")
-    .update({
-      username: username || null,
-      grade,
-      subjects,
-      ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
-    })
-    .eq("id", userId)
+  const { error } = await admin.from("profiles").upsert({
+    id: userId,
+    full_name: `${lastName} ${firstName}`.trim(),
+    first_name: firstName,
+    last_name: lastName,
+    username: username || null,
+    grade,
+    subjects,
+    ...(avatarUrl ? { avatar_url: avatarUrl } : {}),
+  }, { onConflict: "id" })
+  if (error) console.error("finaliseProfile error:", error)
 }

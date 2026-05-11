@@ -178,66 +178,68 @@ export default function RegisterPage() {
       return
     }
     setBusy(true)
-    const supabase = createClient()
+    try {
+      const supabase = createClient()
 
-    // Check username one more time before signup
-    const checkRes = await fetch(`/api/check-username?username=${encodeURIComponent(s2Data.username)}`)
-    const checkJson = await checkRes.json()
-    if (!checkJson.available) {
-      toast.error("Хэрэглэгчийн нэр аль хэдийн бүртгэлтэй байна. Өөр нэр сонгоно уу.")
-      setBusy(false)
-      setStep(2)
-      return
-    }
-
-    const { data, error } = await supabase.auth.signUp({
-      email:    s1Data.email,
-      password: s1Data.password,
-      options: {
-        data: {
-          full_name:  `${s1Data.last_name} ${s1Data.first_name}`,
-          first_name: s1Data.first_name,
-          last_name:  s1Data.last_name,
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
-
-    if (error || !data.user) {
-      setBusy(false)
-      toast.error("Бүртгэл амжилтгүй", { description: error?.message })
-      return
-    }
-
-    const userId = data.user.id
-    let avatarUrl: string | null = null
-
-    // Upload avatar
-    if (avatarFile) {
-      const ext  = avatarFile.name.split(".").pop()
-      const path = `${userId}.${ext}`
-      const { error: uploadErr } = await supabase.storage
-        .from("avatars")
-        .upload(path, avatarFile, { upsert: true })
-      if (!uploadErr) {
-        const { data: urlData } = supabase.storage
-          .from("avatars")
-          .getPublicUrl(path)
-        avatarUrl = urlData.publicUrl
+      const checkRes = await fetch(`/api/check-username?username=${encodeURIComponent(s2Data.username)}`)
+      const checkJson = await checkRes.json()
+      if (!checkJson.available) {
+        toast.error("Хэрэглэгчийн нэр аль хэдийн бүртгэлтэй байна. Өөр нэр сонгоно уу.")
+        setBusy(false)
+        setStep(2)
+        return
       }
-    }
 
-    // Save profile extras via server action (uses admin client)
-    await finaliseProfile(userId, avatarUrl, s2Data.username, values.grade, subjects)
+      const { data, error } = await supabase.auth.signUp({
+        email:    s1Data.email,
+        password: s1Data.password,
+        options: {
+          data: {
+            full_name:  `${s1Data.last_name} ${s1Data.first_name}`,
+            first_name: s1Data.first_name,
+            last_name:  s1Data.last_name,
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-    setBusy(false)
-    if (data.session) {
-      toast.success("Бүртгэл амжилттай! Тавтай морил.")
-      router.push("/dashboard")
-      router.refresh()
-    } else {
-      toast.success("Имэйл рүү баталгаажуулах код илгээлээ")
-      router.push(`/verify?email=${encodeURIComponent(s1Data.email)}`)
+      if (error || !data.user) {
+        toast.error("Бүртгэл амжилтгүй", { description: error?.message })
+        setBusy(false)
+        return
+      }
+
+      const userId = data.user.id
+      let avatarUrl: string | null = null
+
+      if (avatarFile) {
+        const ext  = avatarFile.name.split(".").pop()
+        const path = `${userId}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, avatarFile, { upsert: true })
+        if (!uploadErr) {
+          const { data: urlData } = supabase.storage
+            .from("avatars")
+            .getPublicUrl(path)
+          avatarUrl = urlData.publicUrl
+        }
+      }
+
+      await finaliseProfile(userId, avatarUrl, s2Data.username, values.grade, subjects, s1Data.first_name, s1Data.last_name)
+
+      setBusy(false)
+      if (data.session) {
+        toast.success("Бүртгэл амжилттай! Тавтай морил.")
+        router.push("/dashboard")
+        router.refresh()
+      } else {
+        toast.success("Имэйл рүү баталгаажуулах код илгээлээ")
+        router.push(`/verify?email=${encodeURIComponent(s1Data.email)}`)
+      }
+    } catch (err) {
+      setBusy(false)
+      toast.error("Бүртгэл амжилтгүй", { description: err instanceof Error ? err.message : "Дахин оролдоно уу" })
     }
   }
 
