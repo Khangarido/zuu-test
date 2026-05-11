@@ -33,7 +33,7 @@ async function autoSubmitExpiredAttempt(attemptId: string, examSetId: string) {
   const admin = getSupabaseAdmin()
   const { data: questions } = await admin
     .from("questions")
-    .select("id, question_type, correct_answer, answer_options(id, is_correct)")
+    .select("id, question_type, correct_answer, points, answer_options(id, is_correct)")
     .eq("exam_set_id", examSetId)
 
   const { data: answers } = await admin
@@ -50,25 +50,33 @@ async function autoSubmitExpiredAttempt(attemptId: string, examSetId: string) {
 
   const total = (questions ?? []).length
   let correct = 0
+  let earnedPoints = 0
+  let totalPoints = 0
   for (const q of questions ?? []) {
+    const pts = (q as any).points ?? 1
+    totalPoints += pts
+    let isCorrect = false
     if (q.question_type === "fill_in") {
       const student = (textMap[q.id] ?? "").trim().toLowerCase()
       const answer = (q.correct_answer ?? "").trim().toLowerCase()
-      if (student && answer && student === answer) correct++
+      if (student && answer && student === answer) isCorrect = true
     } else {
       const opts = Array.isArray(q.answer_options) ? q.answer_options : []
       const correctOpt = (opts as Array<{ id: string; is_correct: boolean }>).find((o) => o.is_correct)
-      if (correctOpt && optionMap[q.id] === correctOpt.id) correct++
+      if (correctOpt && optionMap[q.id] === correctOpt.id) isCorrect = true
     }
+    if (isCorrect) { correct++; earnedPoints += pts }
   }
 
-  const scorePercentage = total > 0 ? (correct / total) * 100 : 0
+  const scorePercentage = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
   await admin.from("attempts").update({
     status: "submitted",
     submitted_at: new Date().toISOString(),
     score_percentage: scorePercentage,
     correct_count: correct,
     total_count: total,
+    earned_points: earnedPoints,
+    total_points: totalPoints,
   }).eq("id", attemptId)
 }
 

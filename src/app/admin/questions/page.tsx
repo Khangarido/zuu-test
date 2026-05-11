@@ -31,6 +31,7 @@ type QuestionRow = {
   topic_id: string | null
   question_text: string
   difficulty: "easy" | "medium" | "hard"
+  points: number
   order_index: number
   section_name: string | null
   explanation: string | null
@@ -91,7 +92,7 @@ export default async function QuestionsAdminPage({
     let query = supabase
       .from("questions")
       .select(
-        "id, exam_set_id, topic_id, question_text, difficulty, order_index, section_name, explanation, image_url, created_at, topics(name), answer_options(option_label, option_text, is_correct, image_url)"
+        "id, exam_set_id, topic_id, question_text, difficulty, points, order_index, section_name, explanation, image_url, created_at, topics(name), answer_options(option_label, option_text, is_correct, image_url)"
       )
       .eq("exam_set_id", selectedExamSetId)
       .order("order_index", { ascending: true })

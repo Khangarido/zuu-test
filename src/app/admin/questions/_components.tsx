@@ -38,6 +38,7 @@ type QuestionData = {
   topic_id: string | null
   question_text: string
   difficulty: "easy" | "medium" | "hard"
+  points: number
   order_index: number
   section_name: string | null
   explanation: string | null
@@ -335,7 +336,7 @@ export function CreateQuestionForm({
         </select>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="grid gap-2">
           <label className="text-sm font-medium">Хэсэг (сонголттой)</label>
           <Input name="section_name" maxLength={100} placeholder="Жишээ: Хэсэг 1" />
@@ -343,6 +344,10 @@ export function CreateQuestionForm({
         <div className="grid gap-2">
           <label className="text-sm font-medium">Дэс дугаар</label>
           <Input name="order_index" type="number" min={0} defaultValue={1} required />
+        </div>
+        <div className="grid gap-2">
+          <label className="text-sm font-medium">Оноо оноо</label>
+          <Input name="points" type="number" min={1} max={20} defaultValue={1} required />
         </div>
       </div>
 
@@ -536,6 +541,7 @@ export function QuestionCrudCard({
               <Badge variant="outline" className="text-xs">{question.section_name}</Badge>
             ) : null}
             <Badge variant="outline">№ {question.order_index}</Badge>
+            <Badge variant="secondary">{question.points ?? 1} оноо</Badge>
             <Badge className={difficultyClass[question.difficulty]}>
               {difficultyLabel[question.difficulty]}
             </Badge>
@@ -611,7 +617,7 @@ export function QuestionCrudCard({
                     ))}
                   </select>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div className="grid gap-2">
                     <label className="text-sm font-medium">Хэсэг</label>
                     <Input
@@ -628,6 +634,17 @@ export function QuestionCrudCard({
                       type="number"
                       min={0}
                       defaultValue={question.order_index}
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Оноо оноо</label>
+                    <Input
+                      name="points"
+                      type="number"
+                      min={1}
+                      max={20}
+                      defaultValue={question.points ?? 1}
                       required
                     />
                   </div>

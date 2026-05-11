@@ -21,7 +21,7 @@ export async function POST(
 
   const { data: questions, error: questionsError } = await supabase
     .from("questions")
-    .select("id, question_type, correct_answer, answer_options(id, is_correct)")
+    .select("id, question_type, correct_answer, points, answer_options(id, is_correct)")
     .eq("exam_set_id", attempt.exam_set_id)
 
   if (questionsError) return NextResponse.json({ error: questionsError.message }, { status: 400 })
@@ -42,20 +42,26 @@ export async function POST(
 
   const total = (questions ?? []).length
   let correct = 0
+  let earnedPoints = 0
+  let totalPoints = 0
 
   for (const q of questions ?? []) {
+    const pts = (q as any).points ?? 1
+    totalPoints += pts
+    let isCorrect = false
     if (q.question_type === "fill_in") {
       const studentAnswer = (textAnswerMap[q.id] ?? "").trim().toLowerCase()
       const correctAnswer = (q.correct_answer ?? "").trim().toLowerCase()
-      if (studentAnswer && correctAnswer && studentAnswer === correctAnswer) correct++
+      if (studentAnswer && correctAnswer && studentAnswer === correctAnswer) isCorrect = true
     } else {
       const opts = Array.isArray(q.answer_options) ? q.answer_options : []
       const correctOpt = (opts as Array<{ id: string; is_correct: boolean }>).find((o) => o.is_correct)
-      if (correctOpt && optionAnswerMap[q.id] === correctOpt.id) correct++
+      if (correctOpt && optionAnswerMap[q.id] === correctOpt.id) isCorrect = true
     }
+    if (isCorrect) { correct++; earnedPoints += pts }
   }
 
-  const scorePercentage = total > 0 ? (correct / total) * 100 : 0
+  const scorePercentage = totalPoints > 0 ? (earnedPoints / totalPoints) * 100 : 0
 
   const { error: updateError } = await supabase.from("attempts").update({
     status: "submitted",
@@ -63,6 +69,8 @@ export async function POST(
     score_percentage: scorePercentage,
     correct_count: correct,
     total_count: total,
+    earned_points: earnedPoints,
+    total_points: totalPoints,
   }).eq("id", id)
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
