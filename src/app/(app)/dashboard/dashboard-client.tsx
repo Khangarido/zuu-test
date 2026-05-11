@@ -109,6 +109,8 @@ function BuyButton({ examId, large }: { examId: string; large?: boolean }) {
       const json = await res.json()
       if (!res.ok || !json.url) { setError(json.error ?? "Алдаа гарлаа."); setLoading(false); return }
       setRedirecting(true)
+      // Small delay so React can paint the overlay before the browser navigates
+      await new Promise(r => setTimeout(r, 80))
       window.location.href = json.url
     } catch { setError("Сүлжээний алдаа гарлаа."); setLoading(false) }
   }
