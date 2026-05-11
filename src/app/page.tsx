@@ -51,27 +51,30 @@ function StarTunnel() {
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    const NUM_STARS = 280
+    const NUM_STARS = 320
     const FOCAL = 500
-    let W = canvas.offsetWidth
-    let H = canvas.offsetHeight
+    // Use window dimensions — canvas covers full viewport
+    let W = window.innerWidth
+    let H = window.innerHeight
     canvas.width = W
     canvas.height = H
 
     type Star = { x: number; y: number; z: number; pz: number }
-    const stars: Star[] = Array.from({ length: NUM_STARS }, () => ({
-      x: (Math.random() - 0.5) * W * 3,
-      y: (Math.random() - 0.5) * H * 3,
-      z: Math.random() * W,
-      pz: 0,
-    }))
-    stars.forEach(s => { s.pz = s.z })
+    let stars: Star[] = []
+
+    function initStars() {
+      stars = Array.from({ length: NUM_STARS }, () => {
+        const z = Math.random() * W
+        return { x: (Math.random() - 0.5) * W * 3, y: (Math.random() - 0.5) * H * 3, z, pz: z }
+      })
+    }
+    initStars()
 
     let animId: number
-    let speed = 4
+    let speed = 5
 
     function draw() {
-      ctx.fillStyle = "rgba(7,7,14,0.25)"
+      ctx.fillStyle = "rgba(7,7,14,0.22)"
       ctx.fillRect(0, 0, W, H)
 
       const cx = W / 2
@@ -93,17 +96,18 @@ function StarTunnel() {
         const spx = (star.x / star.pz) * FOCAL + cx
         const spy = (star.y / star.pz) * FOCAL + cy
 
-        const size  = Math.max(0.3, (1 - star.z / W) * 2.8)
-        const alpha = Math.min(1, (1 - star.z / W) * 1.4)
+        // skip stars outside screen
+        if (sx < -50 || sx > W + 50 || sy < -50 || sy > H + 50) continue
 
-        // color shifts purple → white as star approaches
-        const t   = 1 - star.z / W
-        const r   = Math.round(130 + t * 125)
-        const g   = Math.round(100 + t * 155)
-        const b   = 255
+        const size  = Math.max(0.4, (1 - star.z / W) * 3.2)
+        const alpha = Math.min(1, (1 - star.z / W) * 1.6)
+        const t     = 1 - star.z / W
+        const r     = Math.round(160 + t * 95)
+        const g     = Math.round(130 + t * 125)
+        const b     = 255
 
         ctx.beginPath()
-        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha * 0.85})`
+        ctx.strokeStyle = `rgba(${r},${g},${b},${alpha})`
         ctx.lineWidth = size
         ctx.moveTo(spx, spy)
         ctx.lineTo(sx, sy)
@@ -123,10 +127,11 @@ function StarTunnel() {
 
     // Resize
     const onResize = () => {
-      W = canvas.offsetWidth
-      H = canvas.offsetHeight
+      W = window.innerWidth
+      H = window.innerHeight
       canvas.width = W
       canvas.height = H
+      initStars()
     }
     window.addEventListener("resize", onResize)
 
@@ -140,8 +145,7 @@ function StarTunnel() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ opacity: 0.9 }}
+      style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", opacity: 0.95 }}
     />
   )
 }
