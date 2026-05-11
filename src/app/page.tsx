@@ -51,7 +51,7 @@ function StarTunnel() {
     const ctx = canvas.getContext("2d")!
     if (!ctx) return
 
-    const NUM_STARS = 320
+    const NUM_STARS = 600
     const FOCAL = 500
     // Use window dimensions — canvas covers full viewport
     let W = window.innerWidth
@@ -150,12 +150,12 @@ function StarTunnel() {
   )
 }
 
-// ── Slot counter ───────────────────────────────────────────────────────────
+// ── Count-up hook ──────────────────────────────────────────────────────────
 function useCountUp(target: number, active: boolean) {
   const [count, setCount] = useState(0)
   useEffect(() => {
     if (!active) return
-    const dur = 2200
+    const dur = 2000
     let start: number | null = null
     const step = (ts: number) => {
       if (!start) start = ts
@@ -167,30 +167,6 @@ function useCountUp(target: number, active: boolean) {
     requestAnimationFrame(step)
   }, [active, target])
   return count
-}
-
-function SlotDigit({ digit, active }: { digit: number; active: boolean }) {
-  return (
-    <span className="inline-block overflow-hidden" style={{ height: "1.1em", verticalAlign: "bottom" }}>
-      <span className="flex flex-col" style={{
-        transform: active ? `translateY(-${digit * 10}%)` : "translateY(0%)",
-        transition: active ? "transform 1.6s cubic-bezier(0.16,1,0.3,1)" : "none",
-      }}>
-        {[0,1,2,3,4,5,6,7,8,9].map(n => (
-          <span key={n} className="block" style={{ height: "1.1em", lineHeight: "1.1em" }}>{n}</span>
-        ))}
-      </span>
-    </span>
-  )
-}
-
-function SlotNumber({ value, suffix, active }: { value: number; suffix: string; active: boolean }) {
-  return (
-    <span className="tabular-nums">
-      {String(value).split("").map((d, i) => <SlotDigit key={i} digit={parseInt(d)} active={active} />)}
-      {suffix}
-    </span>
-  )
 }
 
 // Countdown
@@ -226,7 +202,7 @@ function FeatureCard({ f, index }: { f: FeatureDef; index: number }) {
         <Icon className="size-6 text-indigo-400" />
       </div>
       <h3 className="text-xl font-bold mb-3">{f.title}</h3>
-      <p className="text-white/38 leading-relaxed">{f.desc}</p>
+      <p className="text-white/65 leading-relaxed">{f.desc}</p>
     </motion.div>
   )
 }
@@ -254,7 +230,7 @@ function StepCard({ step, index }: { step: StepDef; index: number }) {
         </span>
       </div>
       <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-      <p className="text-white/35 text-sm leading-relaxed">{step.desc}</p>
+      <p className="text-white/60 text-sm leading-relaxed">{step.desc}</p>
     </motion.div>
   )
 }
@@ -276,9 +252,9 @@ function StatCard({ s, index, active }: { s: StatDef; index: number; active: boo
       style={{ background: "#0d0d1a" }}>
       <div className="text-[clamp(3rem,7vw,5.5rem)] font-black leading-none mb-3"
         style={{ background: STAT_GRADIENTS[index], WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-        <SlotNumber value={val} suffix={s.suffix} active={active} />
+        {val.toLocaleString()}{s.suffix}
       </div>
-      <div className="text-sm text-white/35 font-medium tracking-wide">{s.label}</div>
+      <div className="text-sm text-white/60 font-medium tracking-wide">{s.label}</div>
     </motion.div>
   )
 }
@@ -458,7 +434,7 @@ export default function LandingPage() {
       <section className="py-28 px-5 sm:px-8">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400/70 mb-4">Тоо баримт</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 mb-4">Тоо баримт</p>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
               Нотлогдсон{" "}
               <span style={{ background: "linear-gradient(135deg,#818cf8,#c084fc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
@@ -478,7 +454,7 @@ export default function LandingPage() {
       <section id="features" className="py-28 px-5 sm:px-8">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400/70 mb-4">Яагаад Zuu Academy?</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 mb-4">Яагаад Zuu Academy?</p>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
               Хамгийн{" "}
               <span style={{ background: "linear-gradient(135deg,#818cf8,#c084fc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
@@ -497,7 +473,7 @@ export default function LandingPage() {
       <section className="py-28 px-5 sm:px-8">
         <div className="mx-auto max-w-5xl">
           <Reveal className="text-center mb-20">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400/70 mb-4">Процесс</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 mb-4">Процесс</p>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight">3 алхамаар эхэлье</h2>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
@@ -512,19 +488,19 @@ export default function LandingPage() {
       <section id="pricing" className="py-28 px-5 sm:px-8">
         <div className="mx-auto max-w-5xl">
           <Reveal className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400/70 mb-4">Үнэ тариф</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 mb-4">Үнэ тариф</p>
             <h2 className="text-4xl sm:text-5xl font-black tracking-tight mb-4">Ямар ч subscription үгүй</h2>
-            <p className="text-white/35 text-lg">Хэрэгтэй шалгалтаа л ав</p>
+            <p className="text-white/60 text-lg">Хэрэгтэй шалгалтаа л ав</p>
           </Reveal>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Free */}
             <Reveal delay={0}>
               <div className="h-full flex flex-col rounded-3xl border border-white/[0.07] p-8" style={{ background: "rgba(255,255,255,0.02)" }}>
                 <p className="text-xs font-bold text-white/30 uppercase tracking-widest mb-4">Үнэгүй</p>
-                <div className="flex items-end gap-1 mb-8"><span className="text-5xl font-black">0</span><span className="text-xl font-bold text-white/35 mb-1.5">₮</span></div>
+                <div className="flex items-end gap-1 mb-8"><span className="text-5xl font-black">0</span><span className="text-xl font-bold text-white/60 mb-1.5">₮</span></div>
                 <ul className="space-y-3 flex-1 mb-8">
                   {["Өмнөх жилийн ЭЕШ материалууд","Хязгаарлагдмал шалгалтууд","Үндсэн дүн шинжилгээ"].map(t => (
-                    <li key={t} className="flex items-start gap-3 text-sm text-white/38"><Check className="size-4 text-white/20 mt-0.5 shrink-0"/>{t}</li>
+                    <li key={t} className="flex items-start gap-3 text-sm text-white/65"><Check className="size-4 text-white/20 mt-0.5 shrink-0"/>{t}</li>
                   ))}
                 </ul>
                 <Link href="/register" className="flex items-center justify-center h-12 rounded-2xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 hover:bg-white/[0.04] font-semibold text-sm transition-all">Эхлэх</Link>
@@ -563,11 +539,11 @@ export default function LandingPage() {
                   <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/25">-50%</span>
                 </div>
                 <div className="flex items-end gap-1 mb-2"><span className="text-xl font-bold text-white/20 line-through mb-0">50,000₮</span></div>
-                <div className="flex items-end gap-1 mb-2"><span className="text-5xl font-black">24,900</span><span className="text-xl font-bold text-white/35 mb-1.5">₮</span></div>
+                <div className="flex items-end gap-1 mb-2"><span className="text-5xl font-black">24,900</span><span className="text-xl font-bold text-white/60 mb-1.5">₮</span></div>
                 <p className="text-[11px] text-rose-400/70 font-medium mb-8">⏱ {String(countdown.h).padStart(2,"0")}:{String(countdown.m).padStart(2,"0")}:{String(countdown.s).padStart(2,"0")} үлдсэн</p>
                 <ul className="space-y-3 flex-1 mb-8">
                   {["Нэг хичээлийн бүх материал","Хязгааргүй хэрэглээ","Давтагдашгүй үнэ","Бүх дүн шинжилгээ"].map(t => (
-                    <li key={t} className="flex items-start gap-3 text-sm text-white/38"><Check className="size-4 text-violet-400/50 mt-0.5 shrink-0"/>{t}</li>
+                    <li key={t} className="flex items-start gap-3 text-sm text-white/65"><Check className="size-4 text-violet-400/50 mt-0.5 shrink-0"/>{t}</li>
                   ))}
                 </ul>
                 <Link href="/register" className="flex items-center justify-center h-12 rounded-2xl border border-white/10 text-white/45 hover:text-white hover:border-white/20 hover:bg-white/[0.04] font-semibold text-sm transition-all">Авах</Link>
@@ -597,7 +573,7 @@ export default function LandingPage() {
                     бүтээ
                   </span>
                 </h2>
-                <p className="text-white/35 text-lg mb-10 max-w-sm mx-auto leading-relaxed">
+                <p className="text-white/60 text-lg mb-10 max-w-sm mx-auto leading-relaxed">
                   Бүртгэл үнэгүй. Нэмэлт мэдээлэл шаардлагагүй. 30 секундэд бэлэн.
                 </p>
                 <Link href="/register"
