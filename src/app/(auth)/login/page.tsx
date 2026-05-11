@@ -7,7 +7,33 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Loader2, Mail, Lock, Eye, EyeOff, LogIn } from "lucide-react";
+
+function LoginOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/95 backdrop-blur-md">
+      <div className="flex flex-col items-center gap-5 text-center px-6">
+        <div className="relative size-16">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 opacity-25 animate-ping" />
+          <div className="relative flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg">
+            <LogIn className="size-7 text-white" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-lg font-semibold">Нэвтэрч байна...</p>
+          <p className="text-sm text-muted-foreground">Самбар руу шилжиж байна, хүлээнэ үү</p>
+        </div>
+        <div className="flex gap-1.5 mt-1">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="size-2 rounded-full bg-indigo-500"
+              style={{ animation: `loginDot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+          ))}
+        </div>
+      </div>
+      <style>{`@keyframes loginDot { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }`}</style>
+    </div>
+  )
+}
 
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +66,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -60,11 +87,14 @@ export default function LoginPage() {
       return;
     }
     toast.success("Тавтай морил!");
+    setRedirecting(true);
     router.push("/dashboard");
     router.refresh();
   }
 
   return (
+    <>
+    {redirecting && <LoginOverlay />}
     <Card className="shadow-xl border-border/60">
       <CardHeader className="space-y-1 pb-4">
         <CardTitle className="text-2xl font-bold">Нэвтрэх</CardTitle>
@@ -160,5 +190,6 @@ export default function LoginPage() {
         </form>
       </Form>
     </Card>
+    </>
   );
 }

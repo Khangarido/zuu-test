@@ -170,13 +170,13 @@ function useCountUp(target: number, active: boolean) {
 }
 
 // Countdown
-const SALE_END = new Date("2026-06-01T23:59:00+08:00")
+const SALE_END = new Date("2026-05-16T23:59:00+08:00")
 function useCountdown(end: Date) {
-  const [t, setT] = useState({ h: 0, m: 0, s: 0 })
+  const [t, setT] = useState({ d: 0, h: 0, m: 0, s: 0 })
   useEffect(() => {
     function tick() {
       const diff = Math.max(0, end.getTime() - Date.now())
-      setT({ h: Math.floor((diff % 86400000) / 3600000), m: Math.floor((diff % 3600000) / 60000), s: Math.floor((diff % 60000) / 1000) })
+      setT({ d: Math.floor(diff / 86400000), h: Math.floor((diff % 86400000) / 3600000), m: Math.floor((diff % 3600000) / 60000), s: Math.floor((diff % 60000) / 1000) })
     }
     tick(); const id = setInterval(tick, 1000); return () => clearInterval(id)
   }, [end])
@@ -540,7 +540,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-end gap-1 mb-2"><span className="text-xl font-bold text-white/20 line-through mb-0">50,000₮</span></div>
                 <div className="flex items-end gap-1 mb-2"><span className="text-5xl font-black">24,900</span><span className="text-xl font-bold text-white/60 mb-1.5">₮</span></div>
-                <p className="text-[11px] text-rose-400/70 font-medium mb-8">⏱ {String(countdown.h).padStart(2,"0")}:{String(countdown.m).padStart(2,"0")}:{String(countdown.s).padStart(2,"0")} үлдсэн</p>
+                <p className="text-[11px] text-rose-400/70 font-medium mb-8">⏱ {countdown.d}хоног {String(countdown.h).padStart(2,"0")}:{String(countdown.m).padStart(2,"0")}:{String(countdown.s).padStart(2,"0")} үлдсэн</p>
                 <ul className="space-y-3 flex-1 mb-8">
                   {["Нэг хичээлийн бүх материал","Хязгааргүй хэрэглээ","Давтагдашгүй үнэ","Бүх дүн шинжилгээ"].map(t => (
                     <li key={t} className="flex items-start gap-3 text-sm text-white/65"><Check className="size-4 text-violet-400/50 mt-0.5 shrink-0"/>{t}</li>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, type ReactNode } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -280,7 +280,7 @@ export function DashboardClient({ owned, available, history, paymentStatus }: {
   const fa = useMemo(() => q ? available.filter(e => e.title.toLowerCase().includes(q) || (e.description ?? "").toLowerCase().includes(q)) : available, [available, q])
   const fh = useMemo(() => q ? history.filter(a => a.examTitle.toLowerCase().includes(q)) : history, [history, q])
 
-  const tabs: { id: Tab; label: string; count: number; icon: React.ReactNode }[] = [
+  const tabs: { id: Tab; label: string; count: number; icon: ReactNode }[] = [
     { id: "owned",     label: "Миний шалгалт", count: fo.length, icon: <BookOpen className="size-4" /> },
     { id: "available", label: "Нээлттэй",      count: fa.length, icon: <ShoppingCart className="size-4" /> },
     { id: "history",   label: "Өгсөн",          count: fh.length, icon: <Trophy className="size-4" /> },
