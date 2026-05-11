@@ -30,12 +30,6 @@ const FEATURES = [
   { icon: Target,     title: "Бүх хичээлийн ЭЕШ",    desc: "Математик, Англи хэл, Газарзүй болон бусад бүх хичээлийн шалгалт нэг дороос.",            large: false },
 ]
 
-const STATS = [
-  { value: 2400, suffix: "+", label: "Бүртгэгдсэн сурагч" },
-  { value: 8700, suffix: "+", label: "Нийт шалгалт өгсөн" },
-  { value: 96,   suffix: "%", label: "Амжилтын түвшин" },
-]
-
 const STEPS = [
   { num: "01", icon: Target,    title: "Бүртгүүлэх",    desc: "И-мэйлээрээ 30 секундэд бүртгэл үүсгэ. Нэмэлт мэдээлэл шаардлагагүй." },
   { num: "02", icon: BookOpen,  title: "Шалгалт сонгох", desc: "Хичээл, жил, түвшингээр шүүгээд өөрт тохирох шалгалтыг сонго." },
@@ -151,7 +145,7 @@ function StarTunnel() {
   )
 }
 
-// ── Count-up hook ──────────────────────────────────────────────────────────
+// ── Count-up hook (unused, kept for future use) ──────────────────────────
 function useCountUp(target: number, active: boolean) {
   const [count, setCount] = useState(0)
   useEffect(() => {
@@ -236,30 +230,6 @@ function StepCard({ step, index }: { step: StepDef; index: number }) {
   )
 }
 
-type StatDef = { value: number; suffix: string; label: string }
-const STAT_GRADIENTS = [
-  "linear-gradient(135deg,#818cf8,#a78bfa)",
-  "linear-gradient(135deg,#a78bfa,#c084fc)",
-  "linear-gradient(135deg,#c084fc,#e879f9)",
-]
-function StatCard({ s, index, active }: { s: StatDef; index: number; active: boolean }) {
-  const val = useCountUp(s.value, active)
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={active ? { opacity: 1, scale: 1 } : {}}
-      transition={{ duration: 0.6, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col items-center justify-center py-16 px-8 text-center"
-      style={{ background: "#0d0d1a" }}>
-      <div className="text-[clamp(3rem,7vw,5.5rem)] font-black leading-none mb-3"
-        style={{ background: STAT_GRADIENTS[index], WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-        {val.toLocaleString()}{s.suffix}
-      </div>
-      <div className="text-sm text-white/60 font-medium tracking-wide">{s.label}</div>
-    </motion.div>
-  )
-}
-
 // ── Scroll-reveal wrapper ─────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -293,8 +263,6 @@ export default function LandingPage() {
   const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
   const [navigating, setNavigating] = useState(false)
-  const statsRef = useRef<HTMLDivElement>(null)
-  const statsInView = useInView(statsRef, { once: true, margin: "-80px" })
   const countdown = useCountdown(SALE_END)
 
   function navTo(href: string) {
@@ -411,22 +379,31 @@ export default function LandingPage() {
             </button>
           </motion.div>
 
-          {/* Quick stats */}
+          {/* Hero pros */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.55 }}
-            className="mt-16 flex flex-wrap items-center justify-center gap-8 sm:gap-14"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.52 }}
+            className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
             {[
-              { n: "2,400+", t: "Бүртгэгдсэн сурагч" },
-              { n: "8,700+", t: "Нийт шалгалт өгсөн" },
-              { n: "96%",    t: "Амжилтын түвшин" },
-            ].map((s, i) => (
-              <motion.div key={s.t} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }} className="text-center">
-                <div className="text-2xl sm:text-3xl font-extrabold text-white">{s.n}</div>
-                <div className="text-xs text-white/30 mt-1 tracking-wide">{s.t}</div>
+              { emoji: "📐", title: "Blueprint шалгалтууд", desc: "Мэргэжлийн багш нарын блуепринт дагуу — 100% бодит нийцтэй" },
+              { emoji: "📊", title: "Дэлгэрэнгүй шинжилгээ", desc: "Сэдэв бүрээр задаргаа — rank харьцул" },
+              { emoji: "🔄", title: "Шинэ шалгалт байнга", desc: "Тогтмол шинэчлэгддэг контент" },
+            ].map((p, i) => (
+              <motion.div
+                key={p.title}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.58 + i * 0.1, duration: 0.5 }}
+                className="flex items-start gap-3 px-5 py-3.5 rounded-2xl text-left"
+                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+              >
+                <span className="text-xl leading-none mt-0.5">{p.emoji}</span>
+                <div>
+                  <div className="text-sm font-bold text-white/90">{p.title}</div>
+                  <div className="text-xs text-white/40 mt-0.5 leading-snug">{p.desc}</div>
+                </div>
               </motion.div>
             ))}
           </motion.div>
@@ -449,26 +426,6 @@ export default function LandingPage() {
           ))}
         </div>
       </div>
-
-      {/* ── STATS ───────────────────────────────────────────────────────── */}
-      <section className="py-28 px-5 sm:px-8">
-        <div className="mx-auto max-w-6xl">
-          <Reveal className="text-center mb-16">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-400 mb-4">Тоо баримт</p>
-            <h2 className="text-4xl sm:text-5xl font-black tracking-tight">
-              Нотлогдсон{" "}
-              <span style={{ background: "linear-gradient(135deg,#818cf8,#c084fc)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                үр дүн
-              </span>
-            </h2>
-          </Reveal>
-
-          <div ref={statsRef} className="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-3xl overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.07)" }}>
-            {STATS.map((s, i) => <StatCard key={s.label} s={s} index={i} active={statsInView} />)}
-          </div>
-        </div>
-      </section>
 
       {/* ── FEATURES ────────────────────────────────────────────────────── */}
       <section id="features" className="py-28 px-5 sm:px-8">
