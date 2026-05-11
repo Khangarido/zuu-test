@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, type ElementType, type ReactNode } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, useInView } from "framer-motion"
@@ -208,7 +208,7 @@ function useCountdown(end: Date) {
 }
 
 // ── Sub-components (hooks can't be in .map callbacks) ─────────────────────
-type FeatureDef = { icon: React.ElementType; title: string; desc: string; large: boolean }
+type FeatureDef = { icon: ElementType; title: string; desc: string; large: boolean }
 function FeatureCard({ f, index }: { f: FeatureDef; index: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: "-60px" })
@@ -231,7 +231,7 @@ function FeatureCard({ f, index }: { f: FeatureDef; index: number }) {
   )
 }
 
-type StepDef = { num: string; icon: React.ElementType; title: string; desc: string }
+type StepDef = { num: string; icon: ElementType; title: string; desc: string }
 function StepCard({ step, index }: { step: StepDef; index: number }) {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: "-60px" })
@@ -284,7 +284,7 @@ function StatCard({ s, index, active }: { s: StatDef; index: number; active: boo
 }
 
 // ── Scroll-reveal wrapper ─────────────────────────────────────────────────
-function Reveal({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
+function Reveal({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
   const inView = useInView(ref, { once: true, margin: "-80px" })
   return (
