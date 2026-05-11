@@ -16,32 +16,41 @@ export async function POST(req: NextRequest) {
     .maybeSingle()
   if (!examSet) return NextResponse.json({ error: "Exam not found" }, { status: 404 })
 
+  const token = process.env.BYL_TOKEN ?? ""
+  const projectId = process.env.BYL_PROJECT_ID ?? ""
+  const priceId = process.env.BYL_PRICE_ID ?? ""
   const siteUrl = (process.env.NEXT_PUBLIC_APP_URL ?? "https://zuutest.site").trim()
 
+  if (!token || !projectId) {
+    return NextResponse.json({ error: "Payment not configured (missing env vars)" }, { status: 500 })
+  }
+
+  const body = {
+    items: [{ price_id: Number(priceId), quantity: 1 }],
+    success_url: `${siteUrl}/dashboard?payment=success`,
+    cancel_url: `${siteUrl}/dashboard?payment=cancelled`,
+    client_reference_id: `${user.id}:${examSetId}`,
+  }
+
   const bylRes = await fetch(
-    `https://byl.mn/api/v1/projects/${process.env.BYL_PROJECT_ID}/checkouts`,
+    `https://byl.mn/api/v1/projects/${projectId}/checkouts`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.BYL_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         Accept: "application/json",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        items: [{ price_id: Number(process.env.BYL_PRICE_ID), quantity: 1 }],
-        success_url: `${siteUrl}/dashboard?payment=success`,
-        cancel_url: `${siteUrl}/dashboard?payment=cancelled`,
-        client_reference_id: `${user.id}:${examSetId}`,
-      }),
+      body: JSON.stringify(body),
     }
   )
 
+  const txt = await bylRes.text()
   if (!bylRes.ok) {
-    const txt = await bylRes.text()
-    console.error("byl.mn checkout error:", bylRes.status, txt)
-    return NextResponse.json({ error: `byl.mn: ${bylRes.status}` }, { status: 502 })
+    console.error("byl.mn error", bylRes.status, txt)
+    return NextResponse.json({ error: `byl.mn ${bylRes.status}: ${txt}` }, { status: 502 })
   }
 
-  const json = await bylRes.json()
+  const json = JSON.parse(txt)
   return NextResponse.json({ url: json.data.url })
 }
