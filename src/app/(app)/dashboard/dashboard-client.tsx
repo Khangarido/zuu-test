@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo, type ReactNode } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
@@ -38,9 +37,38 @@ function ScoreBadge({ score }: { score: number }) {
 
 type Tab = "owned" | "available" | "history"
 
+function CheckoutOverlay() {
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/90 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-5 text-center px-6">
+        <div className="relative size-16">
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 opacity-20 animate-ping" />
+          <div className="relative flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg">
+            <ShoppingCart className="size-7 text-white" />
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-lg font-semibold">Нэхэмжлэл үүсгэж байна...</p>
+          <p className="text-sm text-muted-foreground">Төлбөрийн хуудас руу шилжиж байна, хүлээнэ үү</p>
+        </div>
+        <div className="flex gap-1.5 mt-1">
+          {[0, 1, 2].map(i => (
+            <div
+              key={i}
+              className="size-2 rounded-full bg-indigo-500"
+              style={{ animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite` }}
+            />
+          ))}
+        </div>
+      </div>
+      <style>{`@keyframes bounce { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }`}</style>
+    </div>
+  )
+}
+
 function BuyButton({ examId }: { examId: string }) {
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [redirecting, setRedirecting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function handleBuy() {
@@ -54,30 +82,34 @@ function BuyButton({ examId }: { examId: string }) {
       })
       const json = await res.json()
       if (!res.ok || !json.url) {
-        setError(json.error ?? "Алдаа гарлын алдаа гарлаа.")
+        setError(json.error ?? "Алдаа гарлаа. Дахин оролдоно уу.")
         setLoading(false)
         return
       }
-      router.push(json.url)
+      setRedirecting(true)
+      window.location.href = json.url
     } catch {
-      setError("Холбоос алдаа гарлаа.")
+      setError("Сүлжээний алдаа гарлаа. Дахин оролдоно уу.")
       setLoading(false)
     }
   }
 
   return (
-    <div className="w-full space-y-1.5">
-      <Button
-        onClick={handleBuy}
-        disabled={loading}
-        className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer"
-      >
-        {loading
-          ? <><Loader2 className="size-4 animate-spin" />Уншиж байна...</>
-          : <><ShoppingCart className="size-4" />Худалдаж авах</>}
-      </Button>
-      {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
-    </div>
+    <>
+      {redirecting && <CheckoutOverlay />}
+      <div className="w-full space-y-1.5">
+        <Button
+          onClick={handleBuy}
+          disabled={loading || redirecting}
+          className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white cursor-pointer"
+        >
+          {loading || redirecting
+            ? <><Loader2 className="size-4 animate-spin" />{redirecting ? "Шилжиж байна..." : "Нэхэмжлэл үүсгэж байна..."}</>
+            : <><ShoppingCart className="size-4" />Худалдаж авах</>}
+        </Button>
+        {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
+      </div>
+    </>
   )
 }
 

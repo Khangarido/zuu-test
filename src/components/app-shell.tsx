@@ -46,8 +46,9 @@ export function AppShell({
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Zuu Academy" width={72} height={72} className="h-10 w-auto" priority />
+          <Link href="/dashboard" className="hover:opacity-80 transition-opacity flex items-center gap-2.5">
+            <Image src="/logo.png" alt="Zuu Academy" width={40} height={40} className="h-10 w-10 rounded-xl object-cover" priority />
+            <span className="font-bold text-lg tracking-tight hidden sm:inline-block">Zuu Academy</span>
           </Link>
 
           <div className="flex items-center gap-1">

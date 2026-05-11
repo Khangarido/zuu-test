@@ -307,8 +307,9 @@ export default function LandingPage() {
         )}
       >
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 h-20">
-          <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
-            <Image src="/logo.png" alt="Zuu Academy" width={120} height={60} className="h-12 w-auto" priority />
+          <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity flex items-center gap-3">
+            <Image src="/logo.png" alt="Zuu Academy" width={48} height={48} className="h-12 w-12 rounded-xl object-cover" priority />
+            <span className="text-white font-bold text-xl tracking-tight">Zuu Academy</span>
           </Link>
           <nav className="flex items-center gap-2">
             <Link href="/login">
@@ -366,9 +367,9 @@ export default function LandingPage() {
         {/* Hero content */}
         <div className="relative z-10 text-center max-w-4xl mx-auto px-4 pt-20">
           {/* Pill badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 px-6 py-2.5 mb-8 backdrop-blur-sm">
-            <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            <span className="text-base font-bold tracking-wide text-indigo-400 uppercase">
+          <div className="inline-flex items-center gap-3 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-10 py-4 mb-8 backdrop-blur-sm">
+            <span className="size-2.5 rounded-full bg-indigo-400 animate-pulse" />
+            <span className="text-2xl font-extrabold tracking-wide text-indigo-400 uppercase">
               Бидэнтэй цуг
             </span>
           </div>
