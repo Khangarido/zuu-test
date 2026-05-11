@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect, useRef, type ElementType, type ReactNode } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, useInView } from "framer-motion"
-import { ArrowRight, Check, ChevronDown, Trophy, BarChart3, Zap, BookOpen, DollarSign, Target } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, Trophy, BarChart3, Zap, BookOpen, DollarSign, Target, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ── Data ──────────────────────────────────────────────────────────────────
@@ -277,11 +278,29 @@ function Reveal({ children, delay = 0, className }: { children: ReactNode; delay
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────
+function NavOverlay() {
+  return (
+    <div className="fixed inset-0 z-[999] flex items-center justify-center bg-[#07070e]/90 backdrop-blur-md">
+      <div className="flex flex-col items-center gap-4">
+        <Loader2 className="size-10 text-indigo-400 animate-spin" />
+        <p className="text-white/60 text-sm font-medium">Уншиж байна...</p>
+      </div>
+    </div>
+  )
+}
+
 export default function LandingPage() {
+  const router = useRouter()
   const [scrolled, setScrolled] = useState(false)
+  const [navigating, setNavigating] = useState(false)
   const statsRef = useRef<HTMLDivElement>(null)
   const statsInView = useInView(statsRef, { once: true, margin: "-80px" })
   const countdown = useCountdown(SALE_END)
+
+  function navTo(href: string) {
+    setNavigating(true)
+    router.push(href)
+  }
 
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 40)
@@ -291,6 +310,7 @@ export default function LandingPage() {
 
   return (
     <div className="bg-[#07070e] text-white min-h-screen font-sans antialiased overflow-x-hidden" suppressHydrationWarning>
+      {navigating && <NavOverlay />}
       <style>{`
         @keyframes marquee   { from{transform:translateX(0)} to{transform:translateX(-50%)} }
         @keyframes pulse-dot { 0%,100%{opacity:.4;transform:scale(.9)} 50%{opacity:1;transform:scale(1.1)} }
@@ -312,12 +332,12 @@ export default function LandingPage() {
             <span className="font-extrabold text-xl tracking-tight">Zuu Academy</span>
           </Link>
           <nav className="flex items-center gap-2">
-            <Link href="/login" className="px-5 h-10 flex items-center text-sm font-medium text-white/60 hover:text-white transition-colors rounded-xl hover:bg-white/5">
+            <button onClick={() => navTo("/login")} className="px-5 h-10 flex items-center text-sm font-medium text-white/60 hover:text-white transition-colors rounded-xl hover:bg-white/5 cursor-pointer">
               Нэвтрэх
-            </Link>
-            <Link href="/register" className="px-5 h-10 flex items-center text-sm font-bold bg-white text-[#07070e] rounded-xl hover:bg-white/90 transition-all shadow-lg shadow-white/10 hover:scale-[1.03] gap-1.5">
+            </button>
+            <button onClick={() => navTo("/register")} className="px-5 h-10 flex items-center text-sm font-bold bg-white text-[#07070e] rounded-xl hover:bg-white/90 transition-all shadow-lg shadow-white/10 hover:scale-[1.03] gap-1.5 cursor-pointer">
               Бүртгүүлэх <ArrowRight className="size-3.5" />
-            </Link>
+            </button>
           </nav>
         </div>
       </header>
@@ -380,10 +400,10 @@ export default function LandingPage() {
             transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.34 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            <Link href="/register"
-              className="flex items-center gap-2 px-8 h-14 rounded-2xl bg-white text-[#07070e] font-bold text-base hover:bg-white/90 transition-all shadow-2xl shadow-white/10 hover:scale-[1.04] hover:shadow-white/20">
+            <button onClick={() => navTo("/register")}
+              className="flex items-center gap-2 px-8 h-14 rounded-2xl bg-white text-[#07070e] font-bold text-base hover:bg-white/90 transition-all shadow-2xl shadow-white/10 hover:scale-[1.04] hover:shadow-white/20 cursor-pointer">
               Үнэгүй эхлэх <ArrowRight className="size-4" />
-            </Link>
+            </button>
             <button
               onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
               className="flex items-center gap-2 px-8 h-14 rounded-2xl border border-white/10 text-white/55 hover:text-white hover:border-white/25 hover:bg-white/[0.04] font-medium text-base transition-all cursor-pointer">
