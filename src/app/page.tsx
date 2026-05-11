@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import {
   GraduationCap,
@@ -305,28 +306,22 @@ export default function LandingPage() {
             : "bg-transparent"
         )}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 h-16">
-          <Link href="/" className="flex items-center gap-2.5 cursor-pointer group">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg shadow-indigo-500/30 group-hover:shadow-indigo-500/50 transition-shadow">
-              <GraduationCap className="size-4 text-white" />
-            </div>
-            <span className="font-bold text-lg bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              Zuu Academy
-            </span>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 h-20">
+          <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+            <Image src="/logo.png" alt="Zuu Academy" width={120} height={60} className="h-12 w-auto" priority />
           </Link>
           <nav className="flex items-center gap-2">
             <Link href="/login">
               <Button
-                variant="ghost" size="sm"
-                className="text-white/60 hover:text-white hover:bg-white/5 cursor-pointer transition-colors duration-150"
+                variant="ghost"
+                className="text-white/70 hover:text-white hover:bg-white/5 cursor-pointer transition-colors duration-150 text-base px-5 h-11"
               >
                 Нэвтрэх
               </Button>
             </Link>
             <Link href="/register">
               <Button
-                size="sm"
-                className="bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer shadow-lg shadow-indigo-500/25 transition-all duration-150"
+                className="bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer shadow-lg shadow-indigo-500/25 transition-all duration-150 text-base px-5 h-11"
               >
                 Бүртгүүлэх
               </Button>
@@ -371,9 +366,9 @@ export default function LandingPage() {
         {/* Hero content */}
         <div className="relative z-10 text-center max-w-4xl mx-auto px-4 pt-20">
           {/* Pill badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 px-4 py-1.5 mb-8 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/8 px-6 py-2.5 mb-8 backdrop-blur-sm">
             <span className="size-1.5 rounded-full bg-indigo-400 animate-pulse" />
-            <span className="text-sm font-semibold tracking-wide text-indigo-400 uppercase">
+            <span className="text-base font-bold tracking-wide text-indigo-400 uppercase">
               Бидэнтэй цуг
             </span>
           </div>
@@ -506,7 +501,7 @@ export default function LandingPage() {
               </span>
             </h2>
             <p className="text-white/35 text-lg max-w-lg mx-auto">
-              Монголын шилдэг ЭЕШ бэлтгэл платформ
+              Хамгийн ухаалаг ЭЕШ-д бэлтгэх платформ
             </p>
           </FadeIn>
 
@@ -540,7 +535,7 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
               Хэрхэн ажилладаг вэ?
             </h2>
-            <p className="text-white/35 text-lg">3 алхамаар эхэл</p>
+            <p className="text-white/35 text-lg">3 алхамаар эхэлье</p>
           </FadeIn>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-6">
@@ -765,13 +760,8 @@ export default function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
             <div className="flex flex-col items-center sm:items-start gap-1.5">
-              <Link href="/" className="flex items-center gap-2.5 cursor-pointer group">
-                <div className="flex size-7 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 group-hover:shadow-lg group-hover:shadow-indigo-500/30 transition-shadow">
-                  <GraduationCap className="size-3.5 text-white" />
-                </div>
-                <span className="font-bold bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">
-                  Zuu Academy
-                </span>
+              <Link href="/" className="cursor-pointer hover:opacity-80 transition-opacity">
+                <Image src="/logo.png" alt="Zuu Academy" width={80} height={40} className="h-8 w-auto" />
               </Link>
               <p className="text-xs text-white/20 italic pl-0.5">Ирээдүйгээ бүтээ</p>
             </div>

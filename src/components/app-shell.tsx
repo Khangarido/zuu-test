@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { GraduationCap, LogOut, LayoutDashboard, ShieldCheck, Trophy, User } from "lucide-react";
+import Image from "next/image";
+import { LogOut, LayoutDashboard, ShieldCheck, Trophy, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -45,14 +46,8 @@ export function AppShell({
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2.5 font-bold text-foreground hover:opacity-80 transition-opacity"
-          >
-            <div className="flex size-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm">
-              <GraduationCap className="size-4 text-white" />
-            </div>
-            <span className="hidden sm:block">Zuu Academy</span>
+          <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
+            <Image src="/logo.png" alt="Zuu Academy" width={72} height={72} className="h-10 w-auto" priority />
           </Link>
 
           <div className="flex items-center gap-1">
