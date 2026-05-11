@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { motion, useInView, useMotionValue, useSpring, AnimatePresence } from "framer-motion"
+import { motion, useInView } from "framer-motion"
 import { ArrowRight, Check, ChevronDown, Trophy, BarChart3, Zap, BookOpen, DollarSign, Target } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -203,6 +203,82 @@ function useCountdown(end: Date) {
   return t
 }
 
+// ── Sub-components (hooks can't be in .map callbacks) ─────────────────────
+type FeatureDef = { icon: React.ElementType; title: string; desc: string; large: boolean }
+function FeatureCard({ f, index }: { f: FeatureDef; index: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: "-60px" })
+  const Icon = f.icon
+  return (
+    <motion.div ref={ref}
+      initial={{ opacity: 0, y: 36 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: (index % 3) * 0.08 }}
+      whileHover={{ y: -4, transition: { duration: 0.25 } }}
+      className={cn("group rounded-3xl border border-white/[0.07] p-7 sm:p-8 cursor-default transition-colors duration-300 hover:border-indigo-500/30 hover:bg-indigo-500/[0.03]", f.large ? "lg:col-span-2" : "")}
+      style={{ background: "rgba(255,255,255,0.02)" }}>
+      <div className="flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border border-white/[0.08] group-hover:border-indigo-500/30 transition-colors"
+        style={{ background: "rgba(99,102,241,0.08)" }}>
+        <Icon className="size-6 text-indigo-400" />
+      </div>
+      <h3 className="text-xl font-bold mb-3">{f.title}</h3>
+      <p className="text-white/38 leading-relaxed">{f.desc}</p>
+    </motion.div>
+  )
+}
+
+type StepDef = { num: string; icon: React.ElementType; title: string; desc: string }
+function StepCard({ step, index }: { step: StepDef; index: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true, margin: "-60px" })
+  const Icon = step.icon
+  return (
+    <motion.div ref={ref}
+      initial={{ opacity: 0, y: 40 }}
+      animate={inView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: index * 0.13 }}
+      className="flex flex-col items-center text-center p-8 rounded-3xl border border-white/[0.06]"
+      style={{ background: "rgba(255,255,255,0.02)" }}>
+      <div className="relative mb-6">
+        <div className="flex size-20 items-center justify-center rounded-2xl border border-white/[0.08]"
+          style={{ background: "rgba(99,102,241,0.08)" }}>
+          <Icon className="size-8 text-indigo-400" />
+        </div>
+        <span className="absolute -top-2 -right-2 flex size-7 items-center justify-center rounded-full text-xs font-black text-white"
+          style={{ background: "linear-gradient(135deg,#6366f1,#a855f7)" }}>
+          {step.num}
+        </span>
+      </div>
+      <h3 className="text-lg font-bold mb-2">{step.title}</h3>
+      <p className="text-white/35 text-sm leading-relaxed">{step.desc}</p>
+    </motion.div>
+  )
+}
+
+type StatDef = { value: number; suffix: string; label: string }
+const STAT_GRADIENTS = [
+  "linear-gradient(135deg,#818cf8,#a78bfa)",
+  "linear-gradient(135deg,#a78bfa,#c084fc)",
+  "linear-gradient(135deg,#c084fc,#e879f9)",
+]
+function StatCard({ s, index, active }: { s: StatDef; index: number; active: boolean }) {
+  const val = useCountUp(s.value, active)
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={active ? { opacity: 1, scale: 1 } : {}}
+      transition={{ duration: 0.6, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] }}
+      className="flex flex-col items-center justify-center py-16 px-8 text-center"
+      style={{ background: "#0d0d1a" }}>
+      <div className="text-[clamp(3rem,7vw,5.5rem)] font-black leading-none mb-3"
+        style={{ background: STAT_GRADIENTS[index], WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
+        <SlotNumber value={val} suffix={s.suffix} active={active} />
+      </div>
+      <div className="text-sm text-white/35 font-medium tracking-wide">{s.label}</div>
+    </motion.div>
+  )
+}
+
 // ── Scroll-reveal wrapper ─────────────────────────────────────────────────
 function Reveal({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -389,23 +465,7 @@ export default function LandingPage() {
 
           <div ref={statsRef} className="grid grid-cols-1 sm:grid-cols-3 gap-px rounded-3xl overflow-hidden"
             style={{ background: "rgba(255,255,255,0.07)" }}>
-            {STATS.map((s, i) => {
-              const val = useCountUp(s.value, statsInView)
-              return (
-                <motion.div key={s.label}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={statsInView ? { opacity: 1, scale: 1 } : {}}
-                  transition={{ duration: 0.6, delay: i * 0.12, ease: [0.22, 1, 0.36, 1] }}
-                  className="flex flex-col items-center justify-center py-16 px-8 text-center"
-                  style={{ background: "#0d0d1a" }}>
-                  <div className="text-[clamp(3rem,7vw,5.5rem)] font-black leading-none mb-3"
-                    style={{ background: ["linear-gradient(135deg,#818cf8,#a78bfa)", "linear-gradient(135deg,#a78bfa,#c084fc)", "linear-gradient(135deg,#c084fc,#e879f9)"][i], WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text" }}>
-                    <SlotNumber value={val} suffix={s.suffix} active={statsInView} />
-                  </div>
-                  <div className="text-sm text-white/35 font-medium tracking-wide">{s.label}</div>
-                </motion.div>
-              )
-            })}
+            {STATS.map((s, i) => <StatCard key={s.label} s={s} index={i} active={statsInView} />)}
           </div>
         </div>
       </section>
@@ -424,27 +484,7 @@ export default function LandingPage() {
           </Reveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {FEATURES.map((f, i) => {
-              const Icon = f.icon
-              const ref = useRef<HTMLDivElement>(null)
-              const inView = useInView(ref, { once: true, margin: "-60px" })
-              return (
-                <motion.div key={f.title} ref={ref}
-                  initial={{ opacity: 0, y: 36 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: (i % 3) * 0.08 }}
-                  whileHover={{ y: -4, transition: { duration: 0.25 } }}
-                  className={cn("group rounded-3xl border border-white/[0.07] p-7 sm:p-8 cursor-default transition-colors duration-300 hover:border-indigo-500/30 hover:bg-indigo-500/[0.03]", f.large ? "lg:col-span-2" : "")}
-                  style={{ background: "rgba(255,255,255,0.02)" }}>
-                  <div className="flex items-center justify-center w-14 h-14 rounded-2xl mb-6 border border-white/[0.08] group-hover:border-indigo-500/30 transition-colors"
-                    style={{ background: "rgba(99,102,241,0.08)" }}>
-                    <Icon className="size-6 text-indigo-400" />
-                  </div>
-                  <h3 className="text-xl font-bold mb-3">{f.title}</h3>
-                  <p className="text-white/38 leading-relaxed">{f.desc}</p>
-                </motion.div>
-              )
-            })}
+            {FEATURES.map((f, i) => <FeatureCard key={f.title} f={f} index={i} />)}
           </div>
         </div>
       </section>
@@ -459,32 +499,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative">
             <div className="hidden md:block absolute top-16 left-[33%] right-[33%] h-px"
               style={{ background: "linear-gradient(90deg,transparent,rgba(99,102,241,0.4),transparent)" }} />
-            {STEPS.map((step, i) => {
-              const Icon = step.icon
-              const ref = useRef<HTMLDivElement>(null)
-              const inView = useInView(ref, { once: true, margin: "-60px" })
-              return (
-                <motion.div key={step.num} ref={ref}
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={inView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: i * 0.13 }}
-                  className="flex flex-col items-center text-center p-8 rounded-3xl border border-white/[0.06]"
-                  style={{ background: "rgba(255,255,255,0.02)" }}>
-                  <div className="relative mb-6">
-                    <div className="flex size-20 items-center justify-center rounded-2xl border border-white/[0.08]"
-                      style={{ background: "rgba(99,102,241,0.08)" }}>
-                      <Icon className="size-8 text-indigo-400" />
-                    </div>
-                    <span className="absolute -top-2 -right-2 flex size-7 items-center justify-center rounded-full text-xs font-black text-white"
-                      style={{ background: "linear-gradient(135deg,#6366f1,#a855f7)" }}>
-                      {step.num}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-bold mb-2">{step.title}</h3>
-                  <p className="text-white/35 text-sm leading-relaxed">{step.desc}</p>
-                </motion.div>
-              )
-            })}
+            {STEPS.map((step, i) => <StepCard key={step.num} step={step} index={i} />)}
           </div>
         </div>
       </section>
