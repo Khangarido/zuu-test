@@ -94,7 +94,7 @@ export default function LoginPage() {
 
   return (
     <>
-    {redirecting && <LoginOverlay />}
+    {(submitting || redirecting) && <LoginOverlay />}
     <Card className="shadow-xl border-border/60">
       <CardHeader className="space-y-1 pb-4">
         <CardTitle className="text-2xl font-bold">Нэвтрэх</CardTitle>
