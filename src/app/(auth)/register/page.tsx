@@ -231,8 +231,14 @@ export default function RegisterPage() {
     await finaliseProfile(userId, avatarUrl, s2Data.username, values.grade, subjects)
 
     setBusy(false)
-    toast.success("Имэйл рүү баталгаажуулах код илгээлээ")
-    router.push(`/verify?email=${encodeURIComponent(s1Data.email)}`)
+    if (data.session) {
+      toast.success("Бүртгэл амжилттай! Тавтай морил.")
+      router.push("/dashboard")
+      router.refresh()
+    } else {
+      toast.success("Имэйл рүү баталгаажуулах код илгээлээ")
+      router.push(`/verify?email=${encodeURIComponent(s1Data.email)}`)
+    }
   }
 
   /* ── Progress indicator ── */

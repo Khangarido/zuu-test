@@ -30,9 +30,9 @@ const FEATURES = [
 ]
 
 const STATS = [
-  { value: 1200, suffix: "+", label: "Шалгалт өгсөн" },
-  { value: 50,   suffix: "+", label: "Шалгалтын сан" },
-  { value: 800,  suffix: "",  label: "Дээд оноо" },
+  { value: 2400, suffix: "+", label: "Бүртгэгдсэн сурагч" },
+  { value: 8700, suffix: "+", label: "Нийт шалгалт өгсөн" },
+  { value: 96,   suffix: "%", label: "Амжилтын түвшин" },
 ]
 
 const STEPS = [
@@ -399,9 +399,9 @@ export default function LandingPage() {
             className="mt-16 flex flex-wrap items-center justify-center gap-8 sm:gap-14"
           >
             {[
-              { n: "1,200+", t: "Шалгалт өгсөн" },
-              { n: "50+",    t: "Шалгалтын сан" },
-              { n: "800",    t: "Дээд оноо" },
+              { n: "2,400+", t: "Бүртгэгдсэн сурагч" },
+              { n: "8,700+", t: "Нийт шалгалт өгсөн" },
+              { n: "96%",    t: "Амжилтын түвшин" },
             ].map((s, i) => (
               <motion.div key={s.t} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 + i * 0.1, duration: 0.5 }} className="text-center">
