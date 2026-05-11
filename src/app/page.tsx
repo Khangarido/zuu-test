@@ -386,23 +386,26 @@ export default function LandingPage() {
             transition={{ duration: 0.7, delay: 0.52 }}
             className="mt-14 flex flex-col sm:flex-row items-center justify-center gap-3"
           >
-            {[
-              { emoji: "📐", title: "Blueprint шалгалтууд", desc: "Мэргэжлийн багш нарын блуепринт дагуу — 100% бодит нийцтэй" },
-              { emoji: "📊", title: "Дэлгэрэнгүй шинжилгээ", desc: "Сэдэв бүрээр задаргаа — rank харьцул" },
-              { emoji: "🔄", title: "Шинэ шалгалт байнга", desc: "Тогтмол шинэчлэгддэг контент" },
-            ].map((p, i) => (
+            {([
+              { Icon: BookOpen,  title: "Blueprint шалгалтууд",  desc: "Мэргэжлийн багш нарын blueprint дагуу хийгдсэн, 100% ЭЕШ-тэй нийцтэй шалгалтууд.", color: "#818cf8" },
+              { Icon: BarChart3, title: "Дэлгэрэнгүй шинжилгээ", desc: "Сэдэв бүрээр задаргаа авч, нийт сурагчидтай rank харьцуул.",                        color: "#a78bfa" },
+              { Icon: Zap,       title: "Шинэ шалгалт байнга",   desc: "Тогтмол шинэчлэгддэг контент — шинэ шалгалт байнга нэмэгдэж байна.",                  color: "#c084fc" },
+            ] as const).map((p, i) => (
               <motion.div
                 key={p.title}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.58 + i * 0.1, duration: 0.5 }}
-                className="flex items-start gap-3 px-5 py-3.5 rounded-2xl text-left"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                className="flex items-start gap-3.5 px-5 py-4 rounded-2xl text-left w-full sm:w-auto"
+                style={{ background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.07)" }}
               >
-                <span className="text-xl leading-none mt-0.5">{p.emoji}</span>
+                <div className="shrink-0 size-8 rounded-xl flex items-center justify-center mt-0.5"
+                  style={{ background: `${p.color}18`, border: `1px solid ${p.color}30` }}>
+                  <p.Icon className="size-4" style={{ color: p.color }} />
+                </div>
                 <div>
-                  <div className="text-sm font-bold text-white/90">{p.title}</div>
-                  <div className="text-xs text-white/40 mt-0.5 leading-snug">{p.desc}</div>
+                  <div className="text-sm font-semibold text-white/90">{p.title}</div>
+                  <div className="text-xs text-white/35 mt-0.5 leading-relaxed max-w-[200px]">{p.desc}</div>
                 </div>
               </motion.div>
             ))}
