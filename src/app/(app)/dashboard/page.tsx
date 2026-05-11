@@ -100,34 +100,35 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
       avatarUrl={(profile?.avatar_url as string | null) ?? null}
     >
       <div className="space-y-8">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-700 p-6 sm:p-8 text-white shadow-lg">
-          <div className="absolute -top-16 -right-16 size-64 rounded-full bg-white/5" />
-          <div className="absolute -bottom-20 -left-10 size-56 rounded-full bg-white/5" />
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-700 p-7 sm:p-10 text-white shadow-xl">
+          <div className="absolute -top-20 -right-20 size-72 rounded-full bg-white/5" />
+          <div className="absolute -bottom-24 -left-12 size-64 rounded-full bg-white/5" />
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           <div className="relative z-10">
-            <p className="text-indigo-200 text-sm font-medium mb-1">Сайн байна уу,</p>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{firstName}</h1>
-            <p className="mt-2 text-indigo-200 text-sm">Өнөөдөр ямар шалгалт өгөх вэ?</p>
-            <div className="mt-6 grid grid-cols-3 gap-4 sm:gap-6">
-              <div className="rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4">
-                <div className="flex items-center gap-2 text-indigo-200 mb-1">
-                  <BookOpen className="size-3.5" />
-                  <span className="text-xs">Миний шалгалт</span>
+            <p className="text-indigo-200 text-base font-medium mb-1">Сайн байна уу,</p>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">{firstName} 👋</h1>
+            <p className="mt-2 text-indigo-200 text-base">Өнөөдөр ямар шалгалт өгөх вэ?</p>
+            <div className="mt-7 grid grid-cols-3 gap-4 sm:gap-5">
+              <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 sm:p-5">
+                <div className="flex items-center gap-2 text-indigo-200 mb-2">
+                  <BookOpen className="size-4" />
+                  <span className="text-sm font-medium">Миний шалгалт</span>
                 </div>
-                <div className="text-2xl font-bold">{owned.length}</div>
+                <div className="text-3xl font-extrabold">{owned.length}</div>
               </div>
-              <div className="rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4">
-                <div className="flex items-center gap-2 text-indigo-200 mb-1">
-                  <CheckCircle2 className="size-3.5" />
-                  <span className="text-xs">Дууссан</span>
+              <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 sm:p-5">
+                <div className="flex items-center gap-2 text-indigo-200 mb-2">
+                  <CheckCircle2 className="size-4" />
+                  <span className="text-sm font-medium">Дууссан</span>
                 </div>
-                <div className="text-2xl font-bold">{submitted.length}</div>
+                <div className="text-3xl font-extrabold">{submitted.length}</div>
               </div>
-              <div className="rounded-xl bg-white/10 backdrop-blur-sm p-3 sm:p-4">
-                <div className="flex items-center gap-2 text-indigo-200 mb-1">
-                  <TrendingUp className="size-3.5" />
-                  <span className="text-xs">Дундаж оноо</span>
+              <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 sm:p-5">
+                <div className="flex items-center gap-2 text-indigo-200 mb-2">
+                  <TrendingUp className="size-4" />
+                  <span className="text-sm font-medium">Дундаж оноо</span>
                 </div>
-                <div className="text-2xl font-bold">
+                <div className="text-3xl font-extrabold">
                   {avgScore != null ? `${avgScore.toFixed(0)}%` : "—"}
                 </div>
               </div>
