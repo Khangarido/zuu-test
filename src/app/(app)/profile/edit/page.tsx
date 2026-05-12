@@ -10,12 +10,8 @@ import { Loader2, Camera, X } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle,
-} from "@/components/ui/card"
-import {
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage,
-} from "@/components/ui/form"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const GRADES = [
@@ -23,20 +19,18 @@ const GRADES = [
   { value: "graduated", label: "Төгссөн" },
   { value: "other", label: "Бусад" },
 ]
-
-const SUBJECTS = [
-  "Математик", "Монгол хэл", "Англи хэл", "Физик",
-  "Хими", "Биологи", "Газарзүй", "Түүх",
-  "Нийгэм", "Мэдээлэл зүй", "Бусад",
-]
-
-const SELECT_CLS =
-  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+const SUBJECTS = ["Математик","Монгол хэл","Англи хэл","Физик","Хими","Биологи","Газарзүй","Түүх","Нийгэм","Мэдээлэл зүй","Бусад"]
+const SELECT_CLS = "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 
 const schema = z.object({
-  first_name: z.string().min(1, "Нэрээ оруулна уу").max(50),
-  last_name:  z.string().min(1, "Овгоо оруулна уу").max(50),
-  grade:      z.string().min(1, "Ангиа сонгоно уу"),
+  first_name:   z.string().min(1, "Нэрээ оруулна уу").max(50),
+  last_name:    z.string().min(1, "Овгоо оруулна уу").max(50),
+  grade:        z.string().min(1, "Ангиа сонгоно уу"),
+  bio:          z.string().max(200).optional(),
+  location:     z.string().max(80).optional(),
+  website:      z.string().max(120).optional(),
+  twitter:      z.string().max(50).optional(),
+  display_name: z.string().max(80).optional(),
 })
 type FormValues = z.infer<typeof schema>
 
@@ -45,7 +39,7 @@ function initials(name: string) {
 }
 
 export default function ProfileEditPage() {
-  const router  = useRouter()
+  const router = useRouter()
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [username, setUsername] = useState<string | null>(null)
@@ -57,27 +51,30 @@ export default function ProfileEditPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { first_name: "", last_name: "", grade: "" },
+    defaultValues: { first_name: "", last_name: "", grade: "", bio: "", location: "", website: "", twitter: "", display_name: "" },
   })
 
   useEffect(() => {
     const supabase = createClient()
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.replace("/login"); return }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name, last_name, grade, subjects, avatar_url, username")
-        .eq("id", user.id)
-        .maybeSingle()
-      if (profile) {
+      const { data: p } = await supabase.from("profiles")
+        .select("first_name, last_name, grade, subjects, avatar_url, username, bio, location, website, twitter, display_name")
+        .eq("id", user.id).maybeSingle()
+      if (p) {
         form.reset({
-          first_name: profile.first_name ?? "",
-          last_name:  profile.last_name  ?? "",
-          grade:      profile.grade      ?? "",
+          first_name:   (p.first_name as string) ?? "",
+          last_name:    (p.last_name as string) ?? "",
+          grade:        (p.grade as string) ?? "",
+          bio:          (p.bio as string | null) ?? "",
+          location:     (p.location as string | null) ?? "",
+          website:      (p.website as string | null) ?? "",
+          twitter:      (p.twitter as string | null) ?? "",
+          display_name: (p.display_name as string | null) ?? "",
         })
-        setSubjects((profile.subjects as string[] | null) ?? [])
-        setExistingAvatar(profile.avatar_url ?? null)
-        setUsername(profile.username ?? null)
+        setSubjects((p.subjects as string[] | null) ?? [])
+        setExistingAvatar(p.avatar_url ?? null)
+        setUsername(p.username ?? null)
       }
       setLoading(false)
     })
@@ -87,16 +84,10 @@ export default function ProfileEditPage() {
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 5 * 1024 * 1024) { toast.error("Зураг 5MB-аас бага байх ёстой"); return }
-    setAvatarFile(file)
-    setAvatarPreview(URL.createObjectURL(file))
+    setAvatarFile(file); setAvatarPreview(URL.createObjectURL(file))
   }
-
-  function toggleSubject(s: string) {
-    setSubjects((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s])
-  }
-  function toggleAll() {
-    setSubjects((prev) => prev.length === SUBJECTS.length ? [] : [...SUBJECTS])
-  }
+  function toggleSubject(s: string) { setSubjects(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]) }
+  function toggleAll() { setSubjects(prev => prev.length === SUBJECTS.length ? [] : [...SUBJECTS]) }
 
   async function onSubmit(values: FormValues) {
     if (subjects.length === 0) { toast.error("Хамгийн багадаа нэг хичээл сонгоно уу"); return }
@@ -104,45 +95,32 @@ export default function ProfileEditPage() {
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setBusy(false); return }
-
     let avatarUrl = existingAvatar
     if (avatarFile) {
-      const ext  = avatarFile.name.split(".").pop()
+      const ext = avatarFile.name.split(".").pop()
       const path = `${user.id}.${ext}`
-      const { error: uploadErr } = await supabase.storage
-        .from("avatars").upload(path, avatarFile, { upsert: true })
+      const { error: uploadErr } = await supabase.storage.from("avatars").upload(path, avatarFile, { upsert: true })
       if (!uploadErr) {
         const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path)
         avatarUrl = urlData.publicUrl
       }
     }
-
-    const { error } = await supabase
-      .from("profiles")
-      .update({
-        first_name: values.first_name,
-        last_name:  values.last_name,
-        full_name:  `${values.last_name} ${values.first_name}`,
-        grade:      values.grade,
-        subjects,
-        ...(avatarUrl !== existingAvatar ? { avatar_url: avatarUrl } : {}),
-      })
-      .eq("id", user.id)
-
+    const { error } = await supabase.from("profiles").update({
+      first_name: values.first_name, last_name: values.last_name,
+      full_name: `${values.last_name} ${values.first_name}`,
+      grade: values.grade, subjects,
+      bio: values.bio || null, location: values.location || null,
+      website: values.website || null, twitter: values.twitter || null,
+      display_name: values.display_name || null,
+      ...(avatarUrl !== existingAvatar ? { avatar_url: avatarUrl } : {}),
+    }).eq("id", user.id)
     setBusy(false)
     if (error) { toast.error("Алдаа гарлаа", { description: error.message }); return }
     toast.success("Профайл шинэчлэгдлээ")
-    if (username) router.push(`/profile/${username}`)
-    else router.push("/dashboard")
+    router.push(username ? `/profile/${username}` : "/dashboard")
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-svh flex items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
-      </div>
-    )
-  }
+  if (loading) return <div className="min-h-svh flex items-center justify-center"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>
 
   const displayName = `${form.getValues("last_name")} ${form.getValues("first_name")}`.trim()
   const avatarSrc = avatarPreview ?? existingAvatar ?? undefined
@@ -152,13 +130,8 @@ export default function ProfileEditPage() {
       <div className="w-full max-w-md space-y-4">
         <div>
           <h1 className="text-2xl font-bold">Профайл засах</h1>
-          {username && (
-            <p className="text-sm text-muted-foreground">
-              @{username} — хэрэглэгчийн нэрийг өөрчлөх боломжгүй
-            </p>
-          )}
+          {username && <p className="text-sm text-muted-foreground">@{username} — хэрэглэгчийн нэрийг өөрчлөх боломжгүй</p>}
         </div>
-
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Хувийн мэдээлэл</CardTitle>
@@ -167,35 +140,20 @@ export default function ProfileEditPage() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="grid gap-5">
-                {/* Avatar */}
                 <div className="flex justify-center">
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => fileRef.current?.click()}
-                      className="size-20 rounded-full border-2 border-dashed border-input bg-muted flex items-center justify-center overflow-hidden hover:border-primary transition-colors"
-                    >
+                    <button type="button" onClick={() => fileRef.current?.click()}
+                      className="size-20 rounded-full border-2 border-dashed border-input bg-muted flex items-center justify-center overflow-hidden hover:border-primary transition-colors">
                       {avatarSrc ? (
                         <Avatar className="size-full rounded-full">
                           <AvatarImage src={avatarSrc} className="object-cover" />
-                          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-xl font-bold">
-                            {initials(displayName) || "?"}
-                          </AvatarFallback>
+                          <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-xl font-bold">{initials(displayName) || "?"}</AvatarFallback>
                         </Avatar>
-                      ) : (
-                        <Camera className="size-7 text-muted-foreground" />
-                      )}
+                      ) : <Camera className="size-7 text-muted-foreground" />}
                     </button>
                     {(avatarPreview || existingAvatar) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAvatarFile(null)
-                          setAvatarPreview(null)
-                          setExistingAvatar(null)
-                        }}
-                        className="absolute -top-1 -right-1 size-5 rounded-full bg-destructive text-white flex items-center justify-center"
-                      >
+                      <button type="button" onClick={() => { setAvatarFile(null); setAvatarPreview(null); setExistingAvatar(null) }}
+                        className="absolute -top-1 -right-1 size-5 rounded-full bg-destructive text-white flex items-center justify-center">
                         <X className="size-3" />
                       </button>
                     )}
@@ -203,61 +161,72 @@ export default function ProfileEditPage() {
                   </div>
                 </div>
 
-                {/* Names */}
+                <FormField control={form.control} name="display_name" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Харагдах нэр (сонголттой)</FormLabel>
+                    <FormControl><Input placeholder="Болд Дорж" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
                 <div className="grid grid-cols-2 gap-3">
                   <FormField control={form.control} name="last_name" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Овог</FormLabel>
-                      <FormControl><Input placeholder="Болд" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <FormItem><FormLabel>Овог</FormLabel><FormControl><Input placeholder="Болд" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                   <FormField control={form.control} name="first_name" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Нэр</FormLabel>
-                      <FormControl><Input placeholder="Дорж" {...field} /></FormControl>
-                      <FormMessage />
-                    </FormItem>
+                    <FormItem><FormLabel>Нэр</FormLabel><FormControl><Input placeholder="Дорж" {...field} /></FormControl><FormMessage /></FormItem>
                   )} />
                 </div>
 
-                {/* Grade */}
+                <FormField control={form.control} name="bio" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Танилцуулга (сонголттой)</FormLabel>
+                    <FormControl>
+                      <textarea {...field} maxLength={200} rows={3} placeholder="Өөрийгөө товч танилцуулна уу..."
+                        className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm resize-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField control={form.control} name="location" render={({ field }) => (
+                    <FormItem><FormLabel>Байршил</FormLabel><FormControl><Input placeholder="Улаанбаатар" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                  <FormField control={form.control} name="twitter" render={({ field }) => (
+                    <FormItem><FormLabel>Twitter / X</FormLabel><FormControl><Input placeholder="username" {...field} /></FormControl><FormMessage /></FormItem>
+                  )} />
+                </div>
+
+                <FormField control={form.control} name="website" render={({ field }) => (
+                  <FormItem><FormLabel>Вэбсайт</FormLabel><FormControl><Input placeholder="https://example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+
                 <FormField control={form.control} name="grade" render={({ field }) => (
                   <FormItem>
                     <FormLabel>Анги</FormLabel>
                     <FormControl>
                       <select {...field} className={SELECT_CLS}>
                         <option value="">Сонгох...</option>
-                        {GRADES.map((g) => (
-                          <option key={g.value} value={g.value}>{g.label}</option>
-                        ))}
+                        {GRADES.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
                       </select>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )} />
 
-                {/* Subjects */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Хичээлүүд</label>
                   <label className="flex items-center gap-2 cursor-pointer pb-1 border-b">
-                    <input
-                      type="checkbox"
-                      checked={subjects.length === SUBJECTS.length}
-                      onChange={toggleAll}
-                      className="size-4 rounded border-input accent-primary"
-                    />
+                    <input type="checkbox" checked={subjects.length === SUBJECTS.length} onChange={toggleAll}
+                      className="size-4 rounded border-input accent-primary" />
                     <span className="text-sm font-medium">Бүгдийг сонгох</span>
                   </label>
                   <div className="grid grid-cols-2 gap-y-2 gap-x-3">
-                    {SUBJECTS.map((s) => (
+                    {SUBJECTS.map(s => (
                       <label key={s} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={subjects.includes(s)}
-                          onChange={() => toggleSubject(s)}
-                          className="size-4 rounded border-input accent-primary"
-                        />
+                        <input type="checkbox" checked={subjects.includes(s)} onChange={() => toggleSubject(s)}
+                          className="size-4 rounded border-input accent-primary" />
                         <span className="text-sm">{s}</span>
                       </label>
                     ))}

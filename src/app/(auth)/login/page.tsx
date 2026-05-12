@@ -88,6 +88,7 @@ export default function LoginPage() {
     }
     toast.success("Тавтай морил!");
     setRedirecting(true);
+    await new Promise(r => setTimeout(r, 80));
     router.push("/dashboard");
     router.refresh();
   }

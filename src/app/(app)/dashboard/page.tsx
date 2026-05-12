@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { AppShell } from "@/components/app-shell"
 import { CheckCircle2, TrendingUp, BookOpen } from "lucide-react"
 import { DashboardClient } from "./dashboard-client"
-import type { OwnedExam, AvailableExam, SubmittedAttempt } from "./dashboard-client"
+import type { OwnedExam, AvailableExam, SubmittedAttempt, MyClass } from "./dashboard-client"
 
 export const dynamic = "force-dynamic"
 
@@ -90,6 +90,26 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
     }
   })
 
+  const { data: classMembers } = await supabase
+    .from("class_members")
+    .select("role, class_id, classes!class_id(id, slug, name, description, cover_url, member_count, teacher_id, profiles!teacher_id(full_name))")
+    .eq("user_id", user.id)
+    .limit(6)
+
+  const myClasses: MyClass[] = ((classMembers ?? []) as any[]).map((cm) => {
+    const cls = Array.isArray(cm.classes) ? cm.classes[0] : cm.classes
+    if (!cls) return null
+    const teacher = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
+    return {
+      id: cls.id, slug: cls.slug, name: cls.name,
+      description: cls.description ?? null,
+      coverUrl: cls.cover_url ?? null,
+      memberCount: cls.member_count ?? 0,
+      teacherName: teacher?.full_name ?? null,
+      isOwn: cls.teacher_id === user.id,
+    }
+  }).filter((x: any): x is MyClass => x !== null)
+
   return (
     <AppShell
       fullName={fullName}
@@ -141,6 +161,7 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
           available={availableExams}
           history={history}
           paymentStatus={paymentStatus}
+          myClasses={myClasses}
         />
       </div>
     </AppShell>

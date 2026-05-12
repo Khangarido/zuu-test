@@ -89,6 +89,7 @@ export default function RegisterPage() {
 
   // Subjects
   const [subjects, setSubjects] = useState<string[]>([])
+  const [isTeacher, setIsTeacher] = useState(false)
 
   // Step forms
   const form1 = useForm<Step1>({
@@ -226,7 +227,7 @@ export default function RegisterPage() {
         }
       }
 
-      await finaliseProfile(userId, avatarUrl, s2Data.username, values.grade, subjects, s1Data.first_name, s1Data.last_name)
+      await finaliseProfile(userId, avatarUrl, s2Data.username, values.grade, subjects, s1Data.first_name, s1Data.last_name, isTeacher)
 
       setBusy(false)
       if (data.session) {
@@ -588,12 +589,28 @@ export default function RegisterPage() {
                       </label>
                     ))}
                   </div>
-                  {subjects.length === 0 && (
+                    {subjects.length === 0 && (
                     <p className="text-xs text-muted-foreground">
                       Хамгийн багадаа нэг хичээл сонгоно уу
                     </p>
                   )}
                 </div>
+
+                {/* Teacher toggle */}
+                <label className="flex items-start gap-3 rounded-xl border p-3 cursor-pointer hover:bg-accent transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={isTeacher}
+                    onChange={(e) => setIsTeacher(e.target.checked)}
+                    className="size-4 rounded border-input accent-primary mt-0.5"
+                  />
+                  <div>
+                    <p className="text-sm font-medium">Би багш мөн</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                                    Багш болж анги үүсгэж, сурагчдаа удирдах боломжтой болно
+                    </p>
+                  </div>
+                </label>
               </CardContent>
               <CardFooter className="flex gap-2 mt-2">
                 <Button
