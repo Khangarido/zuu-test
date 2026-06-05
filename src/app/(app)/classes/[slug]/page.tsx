@@ -126,6 +126,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
     photo_url: (p.photo_url as string | null) ?? null,
     created_at: p.created_at as string,
     author_id: p.author_id as string,
+    reaction_count: 0,
+    reacted: myReactionPostIds.includes(p.id as string),
     profiles: (() => {
       const pr = Array.isArray(p.profiles) ? p.profiles[0] : p.profiles
       return pr ? { full_name: pr.full_name ?? null, username: pr.username ?? null, avatar_url: pr.avatar_url ?? null } : null
