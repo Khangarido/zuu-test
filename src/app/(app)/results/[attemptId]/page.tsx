@@ -218,6 +218,7 @@ export default async function ResultsPage({
       email={user.email ?? ""}
       role={role}
       isAdmin={role === "admin"}
+      userId={user.id}
     >
       <div className="mx-auto w-full max-w-4xl space-y-6">
         {/* Header */}

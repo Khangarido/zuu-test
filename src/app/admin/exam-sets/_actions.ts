@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 import { z } from "zod"
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { DEFAULT_CARD_COLOR1, DEFAULT_CARD_COLOR2 } from "@/lib/exam-card-colors"
 
 const examSetSchema = z.object({
   title: z.string().trim().min(2, "Гарчиг хамгийн багадаа 2 тэмдэгт байна.").max(200, "Гарчиг хамгийн ихдээ 200 тэмдэгт байна."),
@@ -15,6 +16,8 @@ const examSetSchema = z.object({
   is_active: z.boolean(),
   is_new: z.boolean(),
   is_recommended: z.boolean(),
+  card_color1: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Өнгийн код буруу байна."),
+  card_color2: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Өнгийн код буруу байна."),
 })
 
 async function requireAdmin() {
@@ -49,6 +52,8 @@ function parseExamSet(formData: FormData) {
     is_active: formData.get("is_active") === "on",
     is_new: formData.get("is_new") === "on",
     is_recommended: formData.get("is_recommended") === "on",
+    card_color1: (formData.get("card_color1") as string) || DEFAULT_CARD_COLOR1,
+    card_color2: (formData.get("card_color2") as string) || DEFAULT_CARD_COLOR2,
   })
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Шалгалтын мэдээлэл буруу байна.")
   return parsed.data
@@ -67,9 +72,12 @@ export async function createExamSet(formData: FormData) {
     is_active: payload.is_active,
     is_new: payload.is_new,
     is_recommended: payload.is_recommended,
+    card_color1: payload.card_color1,
+    card_color2: payload.card_color2,
   })
   if (error) throw new Error(error.message)
   revalidatePath("/admin/exam-sets")
+  revalidatePath("/dashboard")
 }
 
 export async function updateExamSet(id: string, formData: FormData) {
@@ -86,9 +94,12 @@ export async function updateExamSet(id: string, formData: FormData) {
     is_active: payload.is_active,
     is_new: payload.is_new,
     is_recommended: payload.is_recommended,
+    card_color1: payload.card_color1,
+    card_color2: payload.card_color2,
   }).eq("id", id)
   if (error) throw new Error(error.message)
   revalidatePath("/admin/exam-sets")
+  revalidatePath("/dashboard")
 }
 
 export async function deleteExamSet(id: string) {

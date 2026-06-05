@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { LogOut, LayoutDashboard, ShieldCheck, Trophy, User, Users, Globe } from "lucide-react";
+import { LogOut, LayoutDashboard, ShieldCheck, Trophy, User, Users, Newspaper } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notification-bell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,13 +22,14 @@ interface AppShellProps {
   isAdmin?: boolean;
   username?: string | null;
   avatarUrl?: string | null;
+  userId: string;
 }
 
 function initials(name: string) {
   return name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 }
 
-export function AppShell({ children, fullName, email, isAdmin, username, avatarUrl }: AppShellProps) {
+export function AppShell({ children, fullName, email, isAdmin, username, avatarUrl, userId }: AppShellProps) {
   const abbr = initials(fullName) || "?";
   return (
     <div className="flex min-h-svh flex-col">
@@ -38,8 +40,8 @@ export function AppShell({ children, fullName, email, isAdmin, username, avatarU
             <span className="font-bold text-lg tracking-tight hidden sm:inline-block">Zuu Academy</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/community" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
-              <Globe className="size-4" />Нийгэмлэг
+            <Link href="/medee" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              <Newspaper className="size-4" />Мэдээ
             </Link>
             <Link href="/classes" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               <Users className="size-4" />Ангиуд
@@ -52,6 +54,7 @@ export function AppShell({ children, fullName, email, isAdmin, username, avatarU
           </nav>
           <div className="flex items-center gap-1">
             <ThemeToggle />
+            <NotificationBell userId={userId} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 cursor-pointer">
@@ -79,8 +82,8 @@ export function AppShell({ children, fullName, email, isAdmin, username, avatarU
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/community" className="cursor-pointer flex items-center gap-2">
-                    <Globe className="size-4" />Нийгэмлэг
+                  <Link href="/medee" className="cursor-pointer flex items-center gap-2">
+                    <Newspaper className="size-4" />Мэдээ
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>

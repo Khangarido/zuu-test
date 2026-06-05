@@ -7,7 +7,7 @@ import {
   toggleExamSetActive,
   updateExamSet,
 } from "./_actions"
-import { ExamSetCrudCard, SubmitButton } from "./_components"
+import { ExamSetCrudCard, SubmitButton, CardColorFields } from "./_components"
 
 export const dynamic = "force-dynamic"
 
@@ -27,6 +27,8 @@ type ExamSetRow = {
   is_active: boolean
   is_new: boolean
   is_recommended: boolean
+  card_color1: string | null
+  card_color2: string | null
   created_at: string
   subjects: { name: string } | { name: string }[] | null
 }
@@ -39,7 +41,7 @@ export default async function ExamSetsAdminPage() {
       supabase
         .from("exam_sets")
         .select(
-          "id, title, description, subject_id, duration_minutes, price, shuffle_questions, is_active, is_new, is_recommended, created_at, subjects(name)"
+          "id, title, description, subject_id, duration_minutes, price, shuffle_questions, is_active, is_new, is_recommended, card_color1, card_color2, created_at, subjects(name)"
         )
         .order("created_at", { ascending: false }),
       supabase.from("subjects").select("id, name").order("name", { ascending: true }),
@@ -143,6 +145,7 @@ export default async function ExamSetsAdminPage() {
                 />
               </div>
             </div>
+            <CardColorFields idPrefix="create-" />
             <div className="flex flex-col gap-2">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <input

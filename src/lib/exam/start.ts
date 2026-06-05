@@ -110,7 +110,23 @@ export async function startOrResumeAttempt(
   if (accessError) throw new Error(accessError.message)
 
   if (!accessRow) {
-    if (typedExamSet.price === 0) {
+    const isFree = typedExamSet.price === 0
+    let hasExplicitAccess = false
+
+    if (!isFree) {
+      const admin = getSupabaseAdmin()
+      const { data: explicitRow, error: explicitError } = await admin
+        .from("user_exam_access")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("exam_set_id", examSetId)
+        .maybeSingle()
+
+      if (explicitError) throw new Error(explicitError.message)
+      hasExplicitAccess = !!explicitRow
+    }
+
+    if (isFree || hasExplicitAccess) {
       const { error: grantError } = await supabase
         .from("access")
         .insert({ user_id: userId, exam_set_id: examSetId })

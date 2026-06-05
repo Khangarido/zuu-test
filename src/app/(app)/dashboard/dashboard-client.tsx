@@ -1,280 +1,256 @@
 "use client"
 
-import { useState, useMemo, type ReactNode } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import {
-  Clock, ShoppingCart, BookOpen, Trophy, ArrowRight,
-  Play, Search, X, Loader2, RotateCcw, CheckCircle, Users,
-} from "lucide-react"
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  Radar,
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts"
+import { Clock, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { expTier } from "@/lib/ranking-utils"
+import { DashboardExamsSection } from "./dashboard-exams"
+import type {
+  OwnedExamCard,
+  AvailableExamCard,
+  HistoryExamCard,
+} from "@/components/exam-omr-card"
 
-export type OwnedExam = {
-  id: string; title: string; description: string | null
-  duration_minutes: number; lastAttemptId: string | null; lastScore: number | null
-}
-export type AvailableExam = {
-  id: string; title: string; description: string | null
-  duration_minutes: number; price: number
-  is_new: boolean; is_recommended: boolean
-}
-export type SubmittedAttempt = {
-  id: string; examId: string; examTitle: string; score: number; submittedAt: string | null
-}
-export type MyClass = {
-  id: string; slug: string; name: string; description: string | null
-  coverUrl: string | null; memberCount: number; teacherName: string | null; isOwn: boolean
-}
+/* ── Types ───────────────────────────────────────────────────────────────── */
 
-function formatMnt(n: number) { return new Intl.NumberFormat("mn-MN").format(n) + "₮" }
-
-const COVER_GRADIENTS = [
-  "from-indigo-500 to-violet-600",
-  "from-violet-500 to-purple-600",
-  "from-sky-500 to-indigo-600",
-  "from-emerald-500 to-teal-600",
-  "from-rose-500 to-pink-600",
-  "from-amber-500 to-orange-600",
-]
-function gradientFor(slug: string) {
-  let h = 0
-  for (const c of slug) h = (h * 31 + c.charCodeAt(0)) & 0xffffff
-  return COVER_GRADIENTS[Math.abs(h) % COVER_GRADIENTS.length]
+export type ClassTimer = {
+  id: string
+  class_id: string
+  class_name: string
+  label: string
+  target_date: string
 }
 
-const SUBJECT_THEMES: { keywords: string[]; gradient: string; emoji: string }[] = [
-  { keywords: ["англи"],        gradient: "from-sky-400 to-blue-500",       emoji: "🇬🇧" },
-  { keywords: ["монгол"],       gradient: "from-emerald-400 to-teal-500",   emoji: "🇲🇳" },
-  { keywords: ["математик"],    gradient: "from-orange-400 to-amber-500",   emoji: "📐" },
-  { keywords: ["биологи"],      gradient: "from-violet-400 to-purple-500",  emoji: "🧬" },
-  { keywords: ["газарзүй"],     gradient: "from-yellow-400 to-orange-400",  emoji: "🗺️" },
-  { keywords: ["физик"],        gradient: "from-blue-500 to-indigo-600",    emoji: "⚡" },
-  { keywords: ["хими"],         gradient: "from-pink-400 to-rose-500",      emoji: "🧪" },
-  { keywords: ["түүх"],         gradient: "from-amber-400 to-yellow-500",   emoji: "📜" },
-  { keywords: ["нийгэм"],       gradient: "from-cyan-400 to-sky-500",       emoji: "🌍" },
-  { keywords: ["уран зохиол"],  gradient: "from-fuchsia-400 to-pink-500",   emoji: "📚" },
-]
-const DEFAULT_THEME = { gradient: "from-indigo-500 to-violet-600", emoji: "📝" }
-
-function getTheme(title: string) {
-  const t = title.toLowerCase()
-  return SUBJECT_THEMES.find(s => s.keywords.some(k => t.includes(k))) ?? DEFAULT_THEME
+export type SubjectAttempt = {
+  exam_set_id: string
+  score_percentage: number | null
+  subject_name: string | null
 }
 
-function ScoreRing({ score }: { score: number }) {
-  const color = score >= 70 ? "#10b981" : score >= 40 ? "#f59e0b" : "#ef4444"
-  const label = score >= 70 ? "Сайн" : score >= 40 ? "Дунд" : "Муу"
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <div
-        className="flex size-14 items-center justify-center rounded-full text-white text-lg font-extrabold shadow-inner"
-        style={{ background: `conic-gradient(${color} ${score * 3.6}deg, rgba(255,255,255,0.2) 0deg)` }}
-      >
-        <div className="flex size-10 items-center justify-center rounded-full bg-white/20 text-sm font-bold">
-          {score.toFixed(0)}
-        </div>
-      </div>
-      <span className="text-xs font-semibold text-white/80">{label}</span>
-    </div>
-  )
+export type AttemptStat = {
+  score_percentage: number | null
+  time_spent_seconds: number | null
+  submitted_at: string | null
 }
 
-type Tab = "owned" | "available" | "history"
-
-function CheckoutOverlay() {
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/90 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-5 text-center px-6">
-        <div className="relative size-16">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 opacity-20 animate-ping" />
-          <div className="relative flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg">
-            <ShoppingCart className="size-7 text-white" />
-          </div>
-        </div>
-        <div className="space-y-1.5">
-          <p className="text-lg font-semibold">Нэхэмжлэл үүсгэж байна...</p>
-          <p className="text-sm text-muted-foreground">Төлбөрийн хуудас руу шилжиж байна, хүлээнэ үү</p>
-        </div>
-        <div className="flex gap-1.5 mt-1">
-          {[0, 1, 2].map(i => (
-            <div key={i} className="size-2 rounded-full bg-indigo-500"
-              style={{ animation: `bncDot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
-          ))}
-        </div>
-      </div>
-      <style>{"@keyframes bncDot { 0%,80%,100%{transform:scale(.6);opacity:.4} 40%{transform:scale(1);opacity:1} }"}</style>
-    </div>
-  )
+export type RecentAttempt = {
+  id: string
+  examTitle: string
+  score: number
+  submittedAt: string | null
+  timeSpentSeconds: number | null
 }
 
-function BuyButton({ examId, large }: { examId: string; large?: boolean }) {
-  const [loading, setLoading] = useState(false)
-  const [redirecting, setRedirecting] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+/* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-  async function handleBuy() {
-    setLoading(true); setError(null)
-    try {
-      const res = await fetch("/api/byl/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examSetId: examId }),
-      })
-      const json = await res.json()
-      if (!res.ok || !json.url) { setError(json.error ?? "Алдаа гарлаа."); setLoading(false); return }
-      setRedirecting(true)
-      await new Promise(r => setTimeout(r, 80))
-      window.location.href = json.url
-    } catch { setError("Сүлжээний алдаа гарлаа."); setLoading(false) }
+const PIE_COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#F59E0B", "#22C55E", "#94A3B8"]
+
+function mongolianDate() {
+  const now = new Date()
+  return `${now.getFullYear()} оны ${now.getMonth() + 1}-р сарын ${now.getDate()}`
+}
+
+function fmtExp(n: number) {
+  return new Intl.NumberFormat("mn-MN").format(n)
+}
+
+function fmtDuration(seconds: number | null) {
+  if (seconds == null || seconds <= 0) return "—"
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${String(s).padStart(2, "0")}`
+}
+
+function scoreColor(score: number) {
+  if (score >= 80) return "text-emerald-600 dark:text-emerald-400"
+  if (score >= 60) return "text-amber-600 dark:text-amber-400"
+  return "text-rose-600 dark:text-rose-400"
+}
+
+function stdDev(values: number[]) {
+  if (values.length < 2) return 0
+  const mean = values.reduce((a, b) => a + b, 0) / values.length
+  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / values.length
+  return Math.sqrt(variance)
+}
+
+type TimeLeft = { days: number; hours: number; mins: number; secs: number; totalMs: number } | null
+
+function getTimeLeft(target: string): TimeLeft {
+  const diff = new Date(target).getTime() - Date.now()
+  if (diff <= 0) return null
+  return {
+    totalMs: diff,
+    days: Math.floor(diff / 86400000),
+    hours: Math.floor((diff % 86400000) / 3600000),
+    mins: Math.floor((diff % 3600000) / 60000),
+    secs: Math.floor((diff % 60000) / 1000),
   }
+}
+
+function prevTierThreshold(exp: number) {
+  if (exp < 500) return 0
+  if (exp < 1500) return 500
+  if (exp < 3000) return 1500
+  if (exp < 6000) return 3000
+  if (exp < 10000) return 6000
+  return 10000
+}
+
+/* ── Countdown card ──────────────────────────────────────────────────────── */
+
+function CountdownCard({ timer }: { timer: ClassTimer }) {
+  const [left, setLeft] = useState<TimeLeft>(() => getTimeLeft(timer.target_date))
+
+  useEffect(() => {
+    const id = setInterval(() => setLeft(getTimeLeft(timer.target_date)), 1000)
+    return () => clearInterval(id)
+  }, [timer.target_date])
+
+  const isUrgent = left && left.totalMs < 24 * 60 * 60 * 1000
+  const isPulse = left && left.totalMs < 60 * 60 * 1000
 
   return (
-    <>
-      {redirecting && <CheckoutOverlay />}
-      <div className="w-full space-y-1">
-        <button
-          onClick={handleBuy}
-          disabled={loading || redirecting}
+    <div className={cn("rounded-xl border bg-card/50 p-3 space-y-1.5", isPulse && "border-rose-400/50")}>
+      <span className="text-[10px] font-semibold bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 rounded-full px-2 py-0.5">
+        {timer.class_name}
+      </span>
+      <p className="text-sm font-semibold leading-tight">{timer.label}</p>
+      {left ? (
+        <p
           className={cn(
-            "w-full flex items-center justify-center gap-2 rounded-xl font-bold text-white cursor-pointer",
-            "bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-all active:scale-95 disabled:opacity-60",
-            large ? "py-3 text-base" : "py-2.5 text-sm"
+            "font-mono text-base font-bold tabular-nums",
+            isPulse ? "text-rose-500 animate-pulse" : isUrgent ? "text-rose-500" : "text-foreground"
           )}
         >
-          {loading || redirecting
-            ? <><Loader2 className="size-4 animate-spin" />{redirecting ? "Шилжиж байна..." : "Нэхэмжлэл..."}</>
-            : <><ShoppingCart className={large ? "size-5" : "size-4"} />Худалдаж авах</>}
-        </button>
-        {error && <p className="text-xs text-red-200 text-center">{error}</p>}
-      </div>
-    </>
-  )
-}
-
-function OwnedCard({ exam }: { exam: OwnedExam }) {
-  const { gradient, emoji } = getTheme(exam.title)
-  return (
-    <div className={cn("relative rounded-2xl bg-gradient-to-br p-5 flex flex-col gap-4 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden", gradient)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="text-4xl select-none">{emoji}</div>
-        {exam.lastScore !== null && <ScoreRing score={exam.lastScore} />}
-      </div>
-      <div className="flex-1">
-        <h3 className="text-xl font-extrabold text-white leading-tight">{exam.title}</h3>
-        {exam.description && <p className="mt-1.5 text-sm text-white/70 line-clamp-2">{exam.description}</p>}
-        <div className="mt-2 flex items-center gap-1.5 text-sm text-white/60">
-          <Clock className="size-3.5" /><span>{exam.duration_minutes} минут</span>
-        </div>
-      </div>
-      <div className="flex gap-2">
-        {exam.lastAttemptId ? (
-          <>
-            <Link href={`/results/${exam.lastAttemptId}`} className="flex-1">
-              <button className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white text-sm font-bold transition-all cursor-pointer">
-                <CheckCircle className="size-4" />Үр дүн
-              </button>
-            </Link>
-            <Link href={`/exam/${exam.id}?retake=1`}>
-              <button className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-white/20 hover:bg-white/30 text-white transition-all cursor-pointer">
-                <RotateCcw className="size-4" />
-              </button>
-            </Link>
-          </>
-        ) : (
-          <Link href={`/exam/${exam.id}`} className="w-full">
-            <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/25 hover:bg-white/35 text-white font-bold text-base transition-all cursor-pointer active:scale-95">
-              <Play className="size-5" />Эхлүүлэх
-            </button>
-          </Link>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function AvailableCard({ exam }: { exam: AvailableExam }) {
-  const { gradient, emoji } = getTheme(exam.title)
-  return (
-    <div className={cn("relative rounded-2xl bg-gradient-to-br p-5 flex flex-col gap-4 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden", gradient)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="text-4xl select-none">{emoji}</div>
-        <div className="flex flex-col items-end gap-1">
-          {exam.is_new && <span className="text-xs font-bold bg-white/30 text-white px-2.5 py-1 rounded-full">Шинэ</span>}
-          {exam.is_recommended && <span className="text-xs font-bold bg-yellow-300/80 text-yellow-900 px-2.5 py-1 rounded-full">⭐ Санал</span>}
-        </div>
-      </div>
-      <div className="flex-1">
-        <h3 className="text-xl font-extrabold text-white leading-tight">{exam.title}</h3>
-        {exam.description && <p className="mt-1.5 text-sm text-white/70 line-clamp-2">{exam.description}</p>}
-        <div className="mt-2 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-sm text-white/60">
-            <Clock className="size-3.5" /><span>{exam.duration_minutes} минут</span>
-          </div>
-          <span className="text-lg font-extrabold text-white">
-            {exam.price === 0 ? "Үнэгүй" : formatMnt(exam.price)}
-          </span>
-        </div>
-      </div>
-      {exam.price === 0 ? (
-        <Link href={`/exam/${exam.id}`} className="w-full">
-          <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/25 hover:bg-white/35 text-white font-bold text-base transition-all cursor-pointer active:scale-95">
-            <Play className="size-5" />Эхлүүлэх
-          </button>
-        </Link>
+          {left.days > 0 && `${left.days} өдөр `}
+          {String(left.hours).padStart(2, "0")}:{String(left.mins).padStart(2, "0")}:
+          {String(left.secs).padStart(2, "0")}
+        </p>
       ) : (
-        <BuyButton examId={exam.id} large />
+        <p className="text-sm text-muted-foreground">Дууссан</p>
       )}
     </div>
   )
 }
 
-function HistoryCard({ attempt }: { attempt: SubmittedAttempt }) {
-  const { gradient, emoji } = getTheme(attempt.examTitle)
-  return (
-    <div className={cn("relative rounded-2xl bg-gradient-to-br p-5 flex flex-col gap-4 shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 overflow-hidden", gradient)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="text-4xl select-none">{emoji}</div>
-        <ScoreRing score={attempt.score} />
-      </div>
-      <div className="flex-1">
-        <h3 className="text-xl font-extrabold text-white leading-tight">{attempt.examTitle}</h3>
-        <p className="mt-1 text-sm text-white/60">
-          {attempt.submittedAt
-            ? new Date(attempt.submittedAt).toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" })
-            : "—"}
-        </p>
-      </div>
-      <Link href={`/results/${attempt.id}`} className="w-full">
-        <button className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/25 hover:bg-white/35 text-white font-bold text-base transition-all cursor-pointer active:scale-95">
-          <ArrowRight className="size-5" />Дэлгэрэнгүй
-        </button>
-      </Link>
-    </div>
-  )
-}
+/* ── Main component ──────────────────────────────────────────────────────── */
 
-export function DashboardClient({ owned, available, history, paymentStatus, myClasses }: {
-  owned: OwnedExam[]; available: AvailableExam[]; history: SubmittedAttempt[]
+export function DashboardClient({
+  firstName,
+  expPoints,
+  subjectAttempts,
+  allAttempts,
+  totalSubjects,
+  initialTimers,
+  recentAttempts,
+  owned,
+  available,
+  history,
+  paymentStatus,
+}: {
+  firstName: string
+  expPoints: number
+  subjectAttempts: SubjectAttempt[]
+  allAttempts: AttemptStat[]
+  totalSubjects: number
+  initialTimers: ClassTimer[]
+  recentAttempts: RecentAttempt[]
+  owned: OwnedExamCard[]
+  available: AvailableExamCard[]
+  history: HistoryExamCard[]
   paymentStatus?: "success" | "cancelled" | null
-  myClasses?: MyClass[]
 }) {
-  const [tab, setTab] = useState<Tab>(owned.length > 0 ? "owned" : "available")
-  const [query, setQuery] = useState("")
-  const q = query.trim().toLowerCase()
+  const scores = useMemo(
+    () => allAttempts.map((a) => a.score_percentage).filter((s): s is number => s != null),
+    [allAttempts]
+  )
 
-  const fo = useMemo(() => q ? owned.filter(e => e.title.toLowerCase().includes(q) || (e.description ?? "").toLowerCase().includes(q)) : owned, [owned, q])
-  const fa = useMemo(() => q ? available.filter(e => e.title.toLowerCase().includes(q) || (e.description ?? "").toLowerCase().includes(q)) : available, [available, q])
-  const fh = useMemo(() => q ? history.filter(a => a.examTitle.toLowerCase().includes(q)) : history, [history, q])
+  const totalAttempts = allAttempts.length
+  const avgScore = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0
+  const bestScore = scores.length ? Math.max(...scores) : 0
+  const recentScores = scores.slice(0, 5)
+  const recentAvgScore = recentScores.length
+    ? recentScores.reduce((a, b) => a + b, 0) / recentScores.length
+    : 0
 
-  const tabs: { id: Tab; label: string; count: number; icon: ReactNode }[] = [
-    { id: "owned",     label: "Миний шалгалт", count: fo.length, icon: <BookOpen className="size-4" /> },
-    { id: "available", label: "Нээлтэй",      count: fa.length, icon: <ShoppingCart className="size-4" /> },
-    { id: "history",   label: "Өгсөн",          count: fh.length, icon: <Trophy className="size-4" /> },
-  ]
+  const consistencyScore = Math.max(0, Math.min(100, 100 - stdDev(scores)))
+
+  const timesWithData = allAttempts
+    .map((a) => a.time_spent_seconds)
+    .filter((t): t is number => t != null && t > 0)
+  const avgTimeSeconds = timesWithData.length
+    ? timesWithData.reduce((a, b) => a + b, 0) / timesWithData.length
+    : null
+  const speedScore =
+    avgTimeSeconds != null
+      ? Math.max(0, Math.min(100, 100 - (avgTimeSeconds / 3600) * 100))
+      : 50
+
+  const uniqueSubjects = new Set(
+    subjectAttempts.map((a) => a.subject_name ?? "Бусад")
+  ).size
+  const subjectBreadth =
+    totalSubjects > 0
+      ? Math.min(100, (uniqueSubjects / totalSubjects) * 100)
+      : Math.min(100, uniqueSubjects * 20)
+
+  const radarData = useMemo(
+    () => [
+      { axis: "Оноо", value: Math.round(avgScore) },
+      { axis: "Тогтворт", value: Math.round(consistencyScore) },
+      { axis: "Хурд", value: Math.round(speedScore) },
+      { axis: "Идэвх", value: Math.min(totalAttempts * 5, 100) },
+      { axis: "Саяхны", value: Math.round(recentAvgScore) },
+      { axis: "Хамрах", value: Math.round(subjectBreadth) },
+    ],
+    [avgScore, consistencyScore, speedScore, totalAttempts, recentAvgScore, subjectBreadth]
+  )
+
+  const pieData = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const a of subjectAttempts) {
+      const name = a.subject_name ?? "Бусад"
+      counts[name] = (counts[name] ?? 0) + 1
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    const top = sorted.slice(0, 5)
+    const rest = sorted.slice(5).reduce((s, [, c]) => s + c, 0)
+    const items = top.map(([name, value]) => ({ name, value }))
+    if (rest > 0) items.push({ name: "Бусад", value: rest })
+    return items
+  }, [subjectAttempts])
+
+  const tierInfo = expTier(expPoints)
+  const tierPrev = prevTierThreshold(expPoints)
+  const tierProgress =
+    tierInfo.next === Infinity
+      ? 100
+      : Math.min(100, ((expPoints - tierPrev) / (tierInfo.next - tierPrev)) * 100)
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold leading-tight">Сайн байна уу, {firstName}!</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{mongolianDate()}</p>
+        </div>
+      </div>
+
       {paymentStatus === "success" && (
         <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 px-5 py-4 text-emerald-800 dark:text-emerald-300 flex items-center gap-3">
           <span className="text-2xl">✅</span>
@@ -289,125 +265,242 @@ export function DashboardClient({ owned, available, history, paymentStatus, myCl
           <span className="text-2xl">⚠️</span>
           <div>
             <p className="font-bold text-base">Төлбөр цуцлагдлаа</p>
-            <p className="text-sm opacity-80">Дахин оролдохдоо “Худалдаж авах” дарна үү.</p>
+            <p className="text-sm opacity-80">Дахин оролдохдоо “Худалдаж авах” дарна уу.</p>
           </div>
         </div>
       )}
 
-      <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-muted-foreground pointer-events-none" />
-        <Input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Шалгалт хайх..."
-          className="pl-12 pr-12 h-12 text-base rounded-xl bg-muted/50 border-border/50"
-        />
-        {query && (
-          <button onClick={() => setQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
-            <X className="size-5" />
-          </button>
+      {/* Section 1 — Hero row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left — User stat summary */}
+        <div className="rounded-2xl border bg-card p-5 sm:p-6 flex flex-col items-center gap-5">
+          <div className="relative flex items-center justify-center">
+            <div
+              className="size-36 rounded-full flex flex-col items-center justify-center border-4"
+              style={{ borderColor: tierInfo.color + "66", backgroundColor: tierInfo.color + "11" }}
+            >
+              <span className="text-4xl font-extrabold tabular-nums">{totalAttempts}</span>
+              <span className="text-xs text-muted-foreground font-medium mt-0.5">Шалгалт</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full">
+            <div className="text-center rounded-xl bg-muted/40 p-3">
+              <p className="text-lg font-bold">{avgScore > 0 ? `${avgScore.toFixed(0)}%` : "—"}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Дундаж</p>
+            </div>
+            <div className="text-center rounded-xl bg-muted/40 p-3">
+              <p className="text-lg font-bold">{bestScore > 0 ? `${bestScore.toFixed(0)}%` : "—"}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Хамгийн өндөр</p>
+            </div>
+            <div className="text-center rounded-xl bg-muted/40 p-3">
+              <p className="text-lg font-bold flex items-center justify-center gap-0.5">
+                <Zap className="size-3.5" style={{ color: tierInfo.color }} />
+                {fmtExp(expPoints)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">EXP</p>
+            </div>
+            <div className="text-center rounded-xl bg-muted/40 p-3">
+              <p className="text-sm font-bold leading-tight" style={{ color: tierInfo.color }}>
+                {tierInfo.tier}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Түвшин</p>
+            </div>
+          </div>
+
+          {/* EXP progress */}
+          <div className="w-full space-y-1.5">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>EXP явц</span>
+              <span>
+                {fmtExp(expPoints)}
+                {tierInfo.next !== Infinity && ` / ${fmtExp(tierInfo.next)}`}
+              </span>
+            </div>
+            <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${tierProgress}%`, backgroundColor: tierInfo.color }}
+              />
+            </div>
+          </div>
+
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-bold"
+            style={{ backgroundColor: tierInfo.color + "22", color: tierInfo.color }}
+          >
+            <Zap className="size-4" />
+            {tierInfo.tier}
+          </span>
+        </div>
+
+        {/* Right — Radar chart */}
+        <div className="rounded-2xl border bg-card p-5 sm:p-6">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">Чадварын радар</h2>
+          {totalAttempts === 0 ? (
+            <div className="flex items-center justify-center h-[280px] text-sm text-muted-foreground">
+              Шалгалт өгсний дараа график харагдана
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <RadarChart data={radarData} margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
+                <PolarGrid stroke="hsl(var(--border))" gridType="polygon" />
+                <PolarAngleAxis
+                  dataKey="axis"
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                />
+                <Radar
+                  dataKey="value"
+                  stroke="#6366F1"
+                  fill="url(#radarGradient)"
+                  fillOpacity={0.4}
+                  dot={{ r: 3, fill: "#6366F1", strokeWidth: 0 }}
+                />
+                <defs>
+                  <linearGradient id="radarGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#6366F1" />
+                    <stop offset="100%" stopColor="#8B5CF6" />
+                  </linearGradient>
+                </defs>
+                <Tooltip
+                  formatter={(v) => [`${Number(v).toFixed(0)}`, ""]}
+                  contentStyle={{
+                    background: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Section 2 — Pie + Timers */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Pie chart */}
+        <div className="rounded-2xl border bg-card p-5 sm:p-6">
+          <h2 className="text-sm font-semibold mb-3">Хийсэн шалгалтын төрөл</h2>
+          {pieData.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
+              Өгөгдөл байхгүй
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={pieData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="45%"
+                  innerRadius={50}
+                  outerRadius={80}
+                  paddingAngle={2}
+                >
+                  {pieData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value, name) => [`${value} удаа`, name]}
+                  contentStyle={{
+                    background: "hsl(var(--popover))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: 8,
+                    fontSize: 12,
+                  }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  formatter={(value, entry) => {
+                    const count = (entry.payload as { value?: number })?.value ?? 0
+                    return `${value} (${count})`
+                  }}
+                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Timers */}
+        <div className="rounded-2xl border bg-card p-5 sm:p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="size-4 text-muted-foreground" />
+            <h2 className="text-sm font-semibold">Ирэх арга хэмжээ</h2>
+          </div>
+          {initialTimers.length === 0 ? (
+            <div className="flex items-center justify-center h-48 text-sm text-muted-foreground">
+              Удахгүй болох арга хэмжээ байхгүй
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1">
+              {initialTimers.map((t) => (
+                <CountdownCard key={t.id} timer={t} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Exam OMR cards */}
+      <DashboardExamsSection owned={owned} available={available} history={history} />
+
+      {/* Section 3 — Recent attempts table */}
+      <div className="rounded-2xl border bg-card overflow-hidden">
+        <div className="px-5 py-4 border-b">
+          <h2 className="text-sm font-semibold">Сүүлийн шалгалтууд</h2>
+        </div>
+        {recentAttempts.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            Дууссан шалгалт байхгүй байна
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/30 text-left text-xs text-muted-foreground">
+                  <th className="px-5 py-2.5 font-medium">Шалгалт</th>
+                  <th className="px-5 py-2.5 font-medium w-20">Оноо</th>
+                  <th className="px-5 py-2.5 font-medium w-28">Огноо</th>
+                  <th className="px-5 py-2.5 font-medium w-24">Хугацаа</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {recentAttempts.map((a) => (
+                  <tr key={a.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="px-5 py-3">
+                      <Link
+                        href={`/results/${a.id}`}
+                        className="font-medium hover:underline truncate block max-w-[240px] sm:max-w-none"
+                      >
+                        {a.examTitle}
+                      </Link>
+                    </td>
+                    <td className={cn("px-5 py-3 font-bold tabular-nums", scoreColor(a.score))}>
+                      {a.score.toFixed(0)}%
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground text-xs">
+                      {a.submittedAt
+                        ? new Date(a.submittedAt).toLocaleDateString("mn-MN", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground text-xs font-mono tabular-nums">
+                      {fmtDuration(a.timeSpentSeconds)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-
-      <div className="flex gap-2 flex-wrap">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={cn(
-              "flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all cursor-pointer",
-              tab === t.id
-                ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
-                : "bg-muted/60 text-muted-foreground hover:text-foreground hover:bg-muted"
-            )}
-          >
-            {t.icon}
-            {t.label}
-            <span className={cn(
-              "inline-flex items-center justify-center rounded-full w-5 h-5 text-xs font-bold",
-              tab === t.id ? "bg-white/25 text-white" : "bg-background text-muted-foreground"
-            )}>
-              {t.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {tab === "owned" && (
-        fo.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-border/60 py-16 flex flex-col items-center gap-4 text-muted-foreground">
-            <BookOpen className="size-14 opacity-30" />
-            <div className="text-center">
-              <p className="text-lg font-semibold">{q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Танд одоогвор шалгалт алга."}</p>
-              {!q && <p className="text-sm mt-1">Нээлтэй шалгалтуудаас худалдаж аваарай!</p>}
-            </div>
-            {!q && (
-              <button onClick={() => setTab("available")} className="mt-2 flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl transition-all cursor-pointer">
-                Шалгалт харах <ArrowRight className="size-4" />
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fo.map(e => <OwnedCard key={e.id} exam={e} />)}
-          </div>
-        )
-      )}
-
-      {tab === "available" && (
-        fa.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-border/60 py-16 flex flex-col items-center gap-3 text-muted-foreground">
-            <ShoppingCart className="size-14 opacity-30" />
-            <p className="text-lg font-semibold">{q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Шинэ шалгалтууд удахгүй гарна."}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fa.map(e => <AvailableCard key={e.id} exam={e} />)}
-          </div>
-        )
-      )}
-
-      {myClasses && myClasses.length > 0 && tab === "owned" && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-lg">Миний ангиуд</h2>
-            <Link href="/classes" className="text-sm text-indigo-500 hover:underline">Бүгдийг үзэх →</Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {myClasses.map((cls) => {
-              const grad = gradientFor(cls.slug)
-              return (
-                <Link key={cls.id} href={`/classes/${cls.slug}`} className="group rounded-2xl border bg-card overflow-hidden hover:border-primary/50 hover:shadow-md transition-all">
-                  <div className={`h-16 bg-gradient-to-br ${grad} relative`}>
-                    {cls.coverUrl && <img src={cls.coverUrl} alt={cls.name} className="absolute inset-0 w-full h-full object-cover" />}
-                    <div className="absolute inset-0 bg-black/20" />
-                    {cls.isOwn && <span className="absolute top-2 right-2 text-[10px] bg-white/20 text-white rounded-full px-2 py-0.5">Багш</span>}
-                  </div>
-                  <div className="p-3">
-                    <p className="font-semibold text-sm truncate">{cls.name}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                      <Users className="size-3" />{cls.memberCount} гишүүн
-                    </div>
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {tab === "history" && (
-        fh.length === 0 ? (
-          <div className="rounded-2xl border-2 border-dashed border-border/60 py-16 flex flex-col items-center gap-3 text-muted-foreground">
-            <Trophy className="size-14 opacity-30" />
-            <p className="text-lg font-semibold">{q ? "Хайлтад тохирох шалгалт олдсонгүй." : "Дүүргэсэн шалгалт байхгүй байна."}</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {fh.map(a => <HistoryCard key={a.id} attempt={a} />)}
-          </div>
-        )
-      )}
     </div>
   )
 }

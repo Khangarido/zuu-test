@@ -1,5 +1,14 @@
 // Pure utility functions — safe to import in client components
 
+export function expTier(exp: number): { tier: string; color: string; next: number } {
+  if (exp < 500)   return { tier: "Шинэхэн",      color: "#94A3B8", next: 500 }
+  if (exp < 1500)  return { tier: "Дадлагажигч",  color: "#22C55E", next: 1500 }
+  if (exp < 3000)  return { tier: "Дунд",          color: "#3B82F6", next: 3000 }
+  if (exp < 6000)  return { tier: "Мэргэн",        color: "#8B5CF6", next: 6000 }
+  if (exp < 10000) return { tier: "Аварга",        color: "#F59E0B", next: 10000 }
+  return                  { tier: "Легенд",        color: "#EF4444", next: Infinity }
+}
+
 export function getTier(score: number): string {
   if (score >= 90) return "Diamond"
   if (score >= 75) return "Platinum"

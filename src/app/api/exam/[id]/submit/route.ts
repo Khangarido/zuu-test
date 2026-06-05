@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { updateRankScore } from "@/lib/ranking"
 
 export async function POST(
@@ -75,8 +76,37 @@ export async function POST(
 
   if (updateError) return NextResponse.json({ error: updateError.message }, { status: 400 })
 
-  // Fire-and-forget rank update (non-blocking)
-  updateRankScore(user.id).catch(() => {})
+  // Fire-and-forget: rank update + EXP grant + notification
+  ;(async () => {
+    await updateRankScore(user.id)
+
+    const expEarned = 50 + Math.round(scorePercentage * 2)
+    const admin = getSupabaseAdmin()
+
+    // Atomic-safe read+increment for exp_points
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("exp_points")
+      .eq("id", user.id)
+      .maybeSingle()
+    const newExp = ((prof?.exp_points as number | null) ?? 0) + expEarned
+    await admin.from("profiles").update({ exp_points: newExp }).eq("id", user.id)
+
+    // Fetch exam title for notification body
+    const { data: examSet } = await admin
+      .from("exam_sets")
+      .select("title")
+      .eq("id", attempt.exam_set_id)
+      .maybeSingle()
+
+    await admin.from("notifications").insert({
+      user_id: user.id,
+      type: "exp_earned",
+      title: `+${expEarned} XP авлаа!`,
+      body: (examSet?.title as string | null) ?? "Шалгалт дууслаа",
+      link: "/dashboard",
+    })
+  })().catch(() => {})
 
   return NextResponse.json({ ok: true, attempt_id: id })
 }

@@ -20,7 +20,7 @@ export async function createClass(data: {
   const slug = data.slug.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "")
   const { error } = await admin.from("classes").insert({
     name: data.name, slug, description: data.description || null,
-    is_public: data.is_public, teacher_id: user.id,
+    is_public: data.is_public, is_private: !data.is_public, teacher_id: user.id,
   })
   if (error) return { error: error.message }
   revalidatePath("/admin/classes")
@@ -34,7 +34,8 @@ export async function updateClass(id: string, data: {
   await requireAdmin()
   const admin = getSupabaseAdmin()
   const { error } = await admin.from("classes").update({
-    name: data.name, description: data.description || null, is_public: data.is_public,
+    name: data.name, description: data.description || null,
+    is_public: data.is_public, is_private: !data.is_public,
   }).eq("id", id)
   if (error) return { error: error.message }
   revalidatePath("/admin/classes")

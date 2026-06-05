@@ -1,35 +1,75 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { AppShell } from "@/components/app-shell"
-import { CheckCircle2, TrendingUp, BookOpen } from "lucide-react"
 import { DashboardClient } from "./dashboard-client"
-import type { OwnedExam, AvailableExam, SubmittedAttempt, MyClass } from "./dashboard-client"
+import type {
+  ClassTimer,
+  SubjectAttempt,
+  AttemptStat,
+  RecentAttempt,
+} from "./dashboard-client"
+import type {
+  OwnedExamCard,
+  AvailableExamCard,
+  HistoryExamCard,
+} from "@/components/exam-omr-card"
+import { DEFAULT_CARD_COLOR1, DEFAULT_CARD_COLOR2 } from "@/lib/exam-card-colors"
 
 export const dynamic = "force-dynamic"
 
-export default async function DashboardPage({ searchParams }: { searchParams?: Promise<{ payment?: string }> | { payment?: string } }) {
+function normalizeSubjectName(raw: unknown): string {
+  const es = Array.isArray(raw) ? raw[0] : raw
+  if (!es || typeof es !== "object") return "Бусад"
+  const subjects = (es as { subjects?: unknown }).subjects
+  const sub = Array.isArray(subjects) ? subjects[0] : subjects
+  return (sub as { name?: string } | null)?.name ?? "Бусад"
+}
+
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ payment?: string }> | { payment?: string }
+}) {
   const sp = await Promise.resolve(searchParams ?? {})
-  const paymentStatus = sp.payment === "success" ? "success" : sp.payment === "cancelled" ? "cancelled" : null
+  const paymentStatus =
+    sp.payment === "success" ? "success" : sp.payment === "cancelled" ? "cancelled" : null
+
   const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
   if (!user) redirect("/login")
+
+  const admin = getSupabaseAdmin()
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, first_name, role, username, avatar_url")
+    .select("full_name, first_name, role, username, avatar_url, exp_points")
     .eq("id", user.id)
     .maybeSingle()
 
   const { data: accessRows } = await supabase
     .from("access")
-    .select("exam_set:exam_sets(id, title, description, duration_minutes)")
+    .select("exam_set:exam_sets(id, title, description, duration_minutes, card_color1, card_color2)")
     .eq("user_id", user.id)
+
+  const { data: grantedAccessRows } = await supabase
+    .from("user_exam_access")
+    .select("exam_set_id")
+    .eq("user_id", user.id)
+
+  const grantedAccessIds = new Set(
+    (grantedAccessRows ?? []).map((r) => r.exam_set_id as string).filter(Boolean)
+  )
 
   const { data: attempts } = await supabase
     .from("attempts")
-    .select("id, status, score_percentage, submitted_at, exam_set:exam_sets(id, title)")
+    .select("id, status, score_percentage, submitted_at, time_spent_seconds, exam_set:exam_sets(id, title, card_color1, card_color2)")
     .eq("user_id", user.id)
     .order("started_at", { ascending: false })
+
+  const submitted = (attempts ?? []).filter((a) => a.status === "submitted")
 
   const accessIds = (accessRows ?? [])
     .map((r) => (r.exam_set as unknown as { id: string } | null)?.id)
@@ -37,78 +77,157 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
 
   let availableQuery = supabase
     .from("exam_sets")
-    .select("id, title, description, duration_minutes, price, is_new, is_recommended")
+    .select("id, title, description, duration_minutes, price, is_new, is_recommended, card_color1, card_color2")
     .eq("is_active", true)
   if (accessIds.length > 0) {
     availableQuery = availableQuery.not("id", "in", `(${accessIds.join(",")})`)
   }
-  let { data: available, error: availableError } = await availableQuery
-  if (availableError) {
-    const fallback = supabase.from("exam_sets").select("id, title, description, duration_minutes, price").eq("is_active", true)
-    if (accessIds.length > 0) fallback.not("id", "in", `(${accessIds.join(",")})`)
-    const res = await fallback
-    available = res.data as typeof available
-  }
+  const { data: available, error: availableError } = await availableQuery
+  const availableExamsRaw =
+    availableError
+      ? (
+          await (() => {
+            let q = supabase
+              .from("exam_sets")
+              .select("id, title, description, duration_minutes, price, is_new, is_recommended, card_color1, card_color2")
+              .eq("is_active", true)
+            if (accessIds.length > 0) q = q.not("id", "in", `(${accessIds.join(",")})`)
+            return q
+          })()
+        ).data
+      : available
 
-  const submitted = (attempts ?? []).filter((a) => a.status === "submitted")
-  const avgScore = submitted.length > 0
-    ? submitted.reduce((sum, a) => sum + (a.score_percentage ?? 0), 0) / submitted.length
-    : null
+  const owned: OwnedExamCard[] = (accessRows ?? [])
+    .map((row) => {
+      const e = row.exam_set as unknown as {
+        id: string
+        title: string
+        duration_minutes: number
+        card_color1: string | null
+        card_color2: string | null
+      } | null
+      if (!e) return null
+      const last = submitted.filter(
+        (a) => (a.exam_set as unknown as { id: string } | null)?.id === e.id
+      ).at(0)
+      return {
+        id: e.id,
+        title: e.title,
+        duration_minutes: e.duration_minutes,
+        card_color1: e.card_color1 ?? DEFAULT_CARD_COLOR1,
+        card_color2: e.card_color2 ?? DEFAULT_CARD_COLOR2,
+        lastAttemptId: last?.id ?? null,
+        lastScore: last ? (last.score_percentage ?? 0) : null,
+      }
+    })
+    .filter((x): x is OwnedExamCard => x !== null)
 
-  const fullName  = (profile?.full_name as string | null) ?? ""
-  const firstName = (profile?.first_name as string | null) || fullName.split(" ").at(-1) || "сурагч"
-  const role      = profile?.role === "admin" || profile?.role === "superadmin" ? "admin" : "student"
-
-  const owned: OwnedExam[] = (accessRows ?? []).map((row) => {
-    const e = row.exam_set as unknown as { id: string; title: string; description: string | null; duration_minutes: number } | null
-    if (!e) return null
-    const last = submitted.filter((a) => (a.exam_set as unknown as { id: string } | null)?.id === e.id).at(0)
+  const availableExams: AvailableExamCard[] = (availableExamsRaw ?? []).map((e) => {
+    const price = (e.price as number) ?? 0
     return {
-      id: e.id, title: e.title, description: e.description ?? null,
-      duration_minutes: e.duration_minutes,
-      lastAttemptId: last?.id ?? null,
-      lastScore: last ? (last.score_percentage ?? 0) : null,
-    }
-  }).filter((x): x is OwnedExam => x !== null)
-
-  const availableExams: AvailableExam[] = (available ?? []).map((e) => ({
-    id: e.id as string, title: e.title as string,
-    description: (e.description as string | null) ?? null,
-    duration_minutes: e.duration_minutes as number,
-    price: (e.price as number) ?? 0,
-    is_new: (e.is_new as boolean) ?? false,
-    is_recommended: (e.is_recommended as boolean) ?? false,
-  }))
-
-  const history: SubmittedAttempt[] = submitted.map((a) => {
-    const e = a.exam_set as unknown as { id: string; title: string } | null
-    return {
-      id: a.id as string, examId: e?.id ?? "",
-      examTitle: e?.title ?? "—",
-      score: (a.score_percentage as number) ?? 0,
-      submittedAt: (a.submitted_at as string | null) ?? null,
+      id: e.id as string,
+      title: e.title as string,
+      duration_minutes: e.duration_minutes as number,
+      price,
+      is_new: (e.is_new as boolean) ?? false,
+      is_recommended: (e.is_recommended as boolean) ?? false,
+      card_color1: (e.card_color1 as string | null) ?? DEFAULT_CARD_COLOR1,
+      card_color2: (e.card_color2 as string | null) ?? DEFAULT_CARD_COLOR2,
+      hasAccess: price === 0 || grantedAccessIds.has(e.id as string),
     }
   })
 
+  const history: HistoryExamCard[] = submitted.map((a) => {
+    const e = a.exam_set as unknown as {
+      title: string
+      card_color1: string | null
+      card_color2: string | null
+    } | null
+    return {
+      id: a.id as string,
+      examTitle: e?.title ?? "—",
+      score: (a.score_percentage as number) ?? 0,
+      submittedAt: (a.submitted_at as string | null) ?? null,
+      card_color1: e?.card_color1 ?? DEFAULT_CARD_COLOR1,
+      card_color2: e?.card_color2 ?? DEFAULT_CARD_COLOR2,
+    }
+  })
+
+  const { data: subjectAttemptsRaw } = await admin
+    .from("attempts")
+    .select("exam_set_id, score_percentage, exam_sets(title, subject_id, subjects(name))")
+    .eq("user_id", user.id)
+    .eq("status", "submitted")
+
+  const { data: allAttemptsRaw } = await admin
+    .from("attempts")
+    .select("score_percentage, time_spent_seconds, submitted_at, status")
+    .eq("user_id", user.id)
+    .eq("status", "submitted")
+    .order("submitted_at", { ascending: false })
+
+  const { count: totalSubjects } = await admin
+    .from("subjects")
+    .select("id", { count: "exact", head: true })
+
+  const subjectAttempts: SubjectAttempt[] = (subjectAttemptsRaw ?? []).map((r: any) => ({
+    exam_set_id: r.exam_set_id as string,
+    score_percentage: (r.score_percentage as number | null) ?? null,
+    subject_name: normalizeSubjectName(r.exam_sets),
+  }))
+
+  const allAttempts: AttemptStat[] = (allAttemptsRaw ?? []).map((r: any) => ({
+    score_percentage: (r.score_percentage as number | null) ?? null,
+    time_spent_seconds: (r.time_spent_seconds as number | null) ?? null,
+    submitted_at: (r.submitted_at as string | null) ?? null,
+  }))
+
+  const recentAttempts: RecentAttempt[] = submitted.slice(0, 5).map((a) => {
+    const e = a.exam_set as unknown as { title: string } | null
+    return {
+      id: a.id as string,
+      examTitle: e?.title ?? "—",
+      score: (a.score_percentage as number) ?? 0,
+      submittedAt: (a.submitted_at as string | null) ?? null,
+      timeSpentSeconds: (a.time_spent_seconds as number | null) ?? null,
+    }
+  })
+
+  const fullName = (profile?.full_name as string | null) ?? ""
+  const firstName =
+    (profile?.first_name as string | null) || fullName.split(" ").at(-1) || "сурагч"
+  const role = profile?.role === "admin" || profile?.role === "superadmin" ? "admin" : "student"
+  const expPoints = (profile?.exp_points as number | null) ?? 0
+
   const { data: classMembers } = await supabase
     .from("class_members")
-    .select("role, class_id, classes!class_id(id, slug, name, description, cover_url, member_count, teacher_id, profiles!teacher_id(full_name))")
+    .select("class_id")
     .eq("user_id", user.id)
-    .limit(6)
 
-  const myClasses: MyClass[] = ((classMembers ?? []) as any[]).map((cm) => {
-    const cls = Array.isArray(cm.classes) ? cm.classes[0] : cm.classes
-    if (!cls) return null
-    const teacher = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
-    return {
-      id: cls.id, slug: cls.slug, name: cls.name,
-      description: cls.description ?? null,
-      coverUrl: cls.cover_url ?? null,
-      memberCount: cls.member_count ?? 0,
-      teacherName: teacher?.full_name ?? null,
-      isOwn: cls.teacher_id === user.id,
-    }
-  }).filter((x: any): x is MyClass => x !== null)
+  const classIds = ((classMembers ?? []) as { class_id: string }[])
+    .map((cm) => cm.class_id)
+    .filter(Boolean)
+
+  let initialTimers: ClassTimer[] = []
+  if (classIds.length > 0) {
+    const now = new Date().toISOString()
+    const { data: timerRows } = await supabase
+      .from("class_timers")
+      .select("id, class_id, label, target_date, classes!class_id(name)")
+      .in("class_id", classIds)
+      .gt("target_date", now)
+      .order("target_date", { ascending: true })
+
+    initialTimers = ((timerRows ?? []) as any[]).map((t) => ({
+      id: t.id as string,
+      class_id: t.class_id as string,
+      class_name:
+        (Array.isArray(t.classes) ? t.classes[0]?.name : (t.classes as { name?: string })?.name) ??
+        "Анги",
+      label: t.label as string,
+      target_date: t.target_date as string,
+    }))
+  }
 
   return (
     <AppShell
@@ -118,52 +237,21 @@ export default async function DashboardPage({ searchParams }: { searchParams?: P
       isAdmin={role === "admin"}
       username={(profile?.username as string | null) ?? null}
       avatarUrl={(profile?.avatar_url as string | null) ?? null}
+      userId={user.id}
     >
-      <div className="space-y-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-violet-600 to-indigo-700 p-7 sm:p-10 text-white shadow-xl">
-          <div className="absolute -top-20 -right-20 size-72 rounded-full bg-white/5" />
-          <div className="absolute -bottom-24 -left-12 size-64 rounded-full bg-white/5" />
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          <div className="relative z-10">
-            <p className="text-indigo-200 text-base font-medium mb-1">Сайн байна уу,</p>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">{firstName} 👋</h1>
-            <p className="mt-2 text-indigo-200 text-base">Өнөөдөр ямар шалгалт өгөх вэ?</p>
-            <div className="mt-7 grid grid-cols-3 gap-4 sm:gap-5">
-              <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 sm:p-5">
-                <div className="flex items-center gap-2 text-indigo-200 mb-2">
-                  <BookOpen className="size-4" />
-                  <span className="text-sm font-medium">Миний шалгалт</span>
-                </div>
-                <div className="text-3xl font-extrabold">{owned.length}</div>
-              </div>
-              <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 sm:p-5">
-                <div className="flex items-center gap-2 text-indigo-200 mb-2">
-                  <CheckCircle2 className="size-4" />
-                  <span className="text-sm font-medium">Дууссан</span>
-                </div>
-                <div className="text-3xl font-extrabold">{submitted.length}</div>
-              </div>
-              <div className="rounded-2xl bg-white/10 backdrop-blur-sm p-4 sm:p-5">
-                <div className="flex items-center gap-2 text-indigo-200 mb-2">
-                  <TrendingUp className="size-4" />
-                  <span className="text-sm font-medium">Дундаж оноо</span>
-                </div>
-                <div className="text-3xl font-extrabold">
-                  {avgScore != null ? `${avgScore.toFixed(0)}%` : "—"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <DashboardClient
-          owned={owned}
-          available={availableExams}
-          history={history}
-          paymentStatus={paymentStatus}
-          myClasses={myClasses}
-        />
-      </div>
+      <DashboardClient
+        firstName={firstName}
+        expPoints={expPoints}
+        subjectAttempts={subjectAttempts}
+        allAttempts={allAttempts}
+        totalSubjects={totalSubjects ?? 0}
+        initialTimers={initialTimers}
+        recentAttempts={recentAttempts}
+        owned={owned}
+        available={availableExams}
+        history={history}
+        paymentStatus={paymentStatus}
+      />
     </AppShell>
   )
 }

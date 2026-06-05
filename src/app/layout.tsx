@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Inter, Baloo_2 } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import "./globals.css"
@@ -7,6 +7,13 @@ import "./globals.css"
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-sans",
+  display: "swap",
+})
+
+const baloo2 = Baloo_2({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-baloo2",
   display: "swap",
 })
 
@@ -21,7 +28,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="mn" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="mn" className={`${inter.variable} ${baloo2.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col font-sans" suppressHydrationWarning>
         <div suppressHydrationWarning>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>

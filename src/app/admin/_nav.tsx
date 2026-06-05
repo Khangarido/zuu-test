@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   LayoutDashboard, BookOpen, ClipboardList, HelpCircle,
-  Users, CreditCard, ShieldAlert, BarChart2, School,
+  Users, CreditCard, ShieldAlert, BarChart2, School, Key, Timer,
 } from "lucide-react"
 
 const navItems = [
@@ -16,6 +16,8 @@ const navItems = [
   { href: "/admin/results", label: "Дүнгийн тайлан", icon: BarChart2 },
   { href: "/admin/students", label: "Сурагчид", icon: Users },
   { href: "/admin/classes", label: "Ангиуд", icon: School },
+  { href: "/admin/permissions", label: "Эрхүүд", icon: Key },
+  { href: "/admin/timers", label: "Таймер", icon: Timer },
   { href: "/admin/payments", label: "Төлбөр", icon: CreditCard },
 ]
 

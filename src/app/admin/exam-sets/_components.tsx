@@ -20,6 +20,7 @@ import type {
   toggleExamSetActive,
   updateExamSet,
 } from "./_actions"
+import { DEFAULT_CARD_COLOR1, DEFAULT_CARD_COLOR2 } from "@/lib/exam-card-colors"
 
 type SubjectOption = {
   id: string
@@ -38,6 +39,63 @@ type ExamSet = {
   is_recommended: boolean
   subject_id: string
   subject_name: string
+  card_color1: string | null
+  card_color2: string | null
+}
+
+export function CardColorFields({
+  color1 = DEFAULT_CARD_COLOR1,
+  color2 = DEFAULT_CARD_COLOR2,
+  idPrefix = "",
+}: {
+  color1?: string
+  color2?: string
+  idPrefix?: string
+}) {
+  const [c1, setC1] = useState(color1)
+  const [c2, setC2] = useState(color2)
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="space-y-2">
+          <label htmlFor={`${idPrefix}card_color1`} className="text-sm font-medium">
+            Картын өнгө 1
+          </label>
+          <input
+            id={`${idPrefix}card_color1`}
+            name="card_color1"
+            type="color"
+            value={c1}
+            onChange={(e) => setC1(e.target.value)}
+            className="size-10 cursor-pointer rounded border bg-background p-0.5"
+          />
+        </div>
+        <div className="space-y-2">
+          <label htmlFor={`${idPrefix}card_color2`} className="text-sm font-medium">
+            Картын өнгө 2
+          </label>
+          <input
+            id={`${idPrefix}card_color2`}
+            name="card_color2"
+            type="color"
+            value={c2}
+            onChange={(e) => setC2(e.target.value)}
+            className="size-10 cursor-pointer rounded border bg-background p-0.5"
+          />
+        </div>
+        <div
+          className="rounded-lg shrink-0 border border-border/60"
+          style={{
+            width: 60,
+            height: 32,
+            background: `linear-gradient(145deg, ${c1}, ${c2})`,
+          }}
+          title="Урьдчилан харах"
+        />
+      </div>
+    </div>
+  )
 }
 
 type ExamSetActions = {
@@ -117,11 +175,20 @@ export function ExamSetCrudCard({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <h2 className="text-lg font-semibold">{examSet.title}</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline">{examSet.subject_name}</Badge>
             <Badge variant={examSet.is_active ? "default" : "secondary"}>
               {examSet.is_active ? "Идэвхтэй" : "Идэвхгүй"}
             </Badge>
+            <div
+              className="rounded-md border border-border/60 shrink-0"
+              style={{
+                width: 60,
+                height: 32,
+                background: `linear-gradient(145deg, ${examSet.card_color1 ?? DEFAULT_CARD_COLOR1}, ${examSet.card_color2 ?? DEFAULT_CARD_COLOR2})`,
+              }}
+              title="Картын өнгө"
+            />
           </div>
           <p className="text-sm text-muted-foreground">
             {examSet.description?.trim() || "Тайлбар оруулаагүй байна."}
@@ -229,6 +296,11 @@ export function ExamSetCrudCard({
                     />
                   </div>
                 </div>
+                <CardColorFields
+                  idPrefix={`edit-${examSet.id}-`}
+                  color1={examSet.card_color1 ?? DEFAULT_CARD_COLOR1}
+                  color2={examSet.card_color2 ?? DEFAULT_CARD_COLOR2}
+                />
                 <div className="flex flex-col gap-2">
                   <label className="flex items-center gap-2 text-sm font-medium">
                     <input

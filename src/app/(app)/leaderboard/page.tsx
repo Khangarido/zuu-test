@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { AppShell } from "@/components/app-shell"
 import { LeaderboardClient } from "./_client"
+import type { ExpStudent } from "./_client"
 import { Trophy } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -53,6 +54,22 @@ export default async function LeaderboardPage() {
     attempts:   countMap[r.id] ?? 0,
   }))
 
+  // EXP leaderboard — top 50 by exp_points
+  const { data: expRows } = await admin
+    .from("profiles")
+    .select("id, full_name, username, avatar_url, exp_points")
+    .eq("role", "student")
+    .order("exp_points", { ascending: false })
+    .limit(50)
+
+  const expStudents: ExpStudent[] = (expRows ?? []).map((r) => ({
+    id: r.id as string,
+    full_name: r.full_name as string | null,
+    username: r.username as string | null,
+    avatar_url: r.avatar_url as string | null,
+    exp_points: (r.exp_points as number) ?? 0,
+  }))
+
   const viewerRole =
     viewer?.role === "admin" || viewer?.role === "superadmin" ? "admin" : "student"
 
@@ -64,6 +81,7 @@ export default async function LeaderboardPage() {
       isAdmin={viewerRole === "admin"}
       username={viewer?.username ?? null}
       avatarUrl={viewer?.avatar_url ?? null}
+      userId={user.id}
     >
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center gap-3">
@@ -78,7 +96,7 @@ export default async function LeaderboardPage() {
           </div>
         </div>
 
-        <LeaderboardClient students={students} currentUserId={user.id} />
+        <LeaderboardClient students={students} expStudents={expStudents} currentUserId={user.id} />
       </div>
     </AppShell>
   )

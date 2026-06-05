@@ -198,3 +198,99 @@
     @apply font-sans;
   }
 }
+
+/* ─── OMR Answer-Sheet Card ─────────────────────────────────────────────── */
+.omr-wrapper {
+  position: relative;
+}
+.omr-layer-2,
+.omr-layer-1 {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  pointer-events: none;
+}
+.omr-layer-2 {
+  transform: translate(8px, 10px);
+}
+.omr-layer-1 {
+  transform: translate(4px, 6px);
+}
+.omr-card {
+  position: relative;
+  border-radius: 12px;
+  padding: 20px 20px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-baloo2), 'Baloo 2', sans-serif;
+}
+.omr-punch-holes {
+  position: absolute;
+  left: -5px;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  pointer-events: none;
+  z-index: 1;
+}
+.omr-punch-hole {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: white;
+  border: 1.5px solid rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.12);
+}
+.omr-btn {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: white;
+  border: 1.5px solid #D63A6B;
+  border-radius: 8px;
+  color: #D63A6B;
+  font-family: var(--font-baloo2), 'Baloo 2', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 200ms, color 200ms;
+}
+.omr-btn:hover:not(:disabled) {
+  background: #D63A6B;
+  color: white;
+}
+.omr-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.omr-btn-icon {
+  height: 40px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1.5px solid #D63A6B;
+  border-radius: 8px;
+  color: #D63A6B;
+  cursor: pointer;
+  transition: background 200ms, color 200ms;
+}
+.omr-btn-icon:hover {
+  background: #D63A6B;
+  color: white;
+}
+@media (max-width: 640px) {
+  .omr-layer-2 { transform: translate(4px, 6px); }
+  .omr-layer-1 { transform: translate(2px, 4px); }
+}
