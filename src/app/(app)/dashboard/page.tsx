@@ -43,31 +43,36 @@ export default async function DashboardPage({
 
   const admin = getSupabaseAdmin()
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, first_name, role, username, avatar_url, exp_points")
-    .eq("id", user.id)
-    .maybeSingle()
-
-  const { data: accessRows } = await supabase
-    .from("access")
-    .select("exam_set:exam_sets(id, title, description, duration_minutes, card_color1, card_color2)")
-    .eq("user_id", user.id)
-
-  const { data: grantedAccessRows } = await supabase
-    .from("user_exam_access")
-    .select("exam_set_id")
-    .eq("user_id", user.id)
+  // Хамааралгүй query-уудыг зэрэг ажиллуулна
+  const [
+    { data: profile },
+    { data: accessRows },
+    { data: grantedAccessRows },
+    { data: attempts },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("full_name, first_name, role, username, avatar_url, exp_points")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("access")
+      .select("exam_set:exam_sets(id, title, description, duration_minutes, card_color1, card_color2)")
+      .eq("user_id", user.id),
+    supabase
+      .from("user_exam_access")
+      .select("exam_set_id")
+      .eq("user_id", user.id),
+    supabase
+      .from("attempts")
+      .select("id, status, score_percentage, submitted_at, time_spent_seconds, exam_set:exam_sets(id, title, card_color1, card_color2)")
+      .eq("user_id", user.id)
+      .order("started_at", { ascending: false }),
+  ])
 
   const grantedAccessIds = new Set(
     (grantedAccessRows ?? []).map((r) => r.exam_set_id as string).filter(Boolean)
   )
-
-  const { data: attempts } = await supabase
-    .from("attempts")
-    .select("id, status, score_percentage, submitted_at, time_spent_seconds, exam_set:exam_sets(id, title, card_color1, card_color2)")
-    .eq("user_id", user.id)
-    .order("started_at", { ascending: false })
 
   const submitted = (attempts ?? []).filter((a) => a.status === "submitted")
 
@@ -153,22 +158,26 @@ export default async function DashboardPage({
     }
   })
 
-  const { data: subjectAttemptsRaw } = await admin
-    .from("attempts")
-    .select("exam_set_id, score_percentage, exam_sets(title, subject_id, subjects(name))")
-    .eq("user_id", user.id)
-    .eq("status", "submitted")
-
-  const { data: allAttemptsRaw } = await admin
-    .from("attempts")
-    .select("score_percentage, time_spent_seconds, submitted_at, status")
-    .eq("user_id", user.id)
-    .eq("status", "submitted")
-    .order("submitted_at", { ascending: false })
-
-  const { count: totalSubjects } = await admin
-    .from("subjects")
-    .select("id", { count: "exact", head: true })
+  const [
+    { data: subjectAttemptsRaw },
+    { data: allAttemptsRaw },
+    { count: totalSubjects },
+  ] = await Promise.all([
+    admin
+      .from("attempts")
+      .select("exam_set_id, score_percentage, exam_sets(title, subject_id, subjects(name))")
+      .eq("user_id", user.id)
+      .eq("status", "submitted"),
+    admin
+      .from("attempts")
+      .select("score_percentage, time_spent_seconds, submitted_at, status")
+      .eq("user_id", user.id)
+      .eq("status", "submitted")
+      .order("submitted_at", { ascending: false }),
+    admin
+      .from("subjects")
+      .select("id", { count: "exact", head: true }),
+  ])
 
   const subjectAttempts: SubjectAttempt[] = (subjectAttemptsRaw ?? []).map((r: any) => ({
     exam_set_id: r.exam_set_id as string,
