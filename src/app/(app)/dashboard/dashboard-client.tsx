@@ -1,20 +1,14 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
-import {
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  Radar,
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-} from "recharts"
 import { Clock, Zap } from "lucide-react"
+
+const { RadarChartWidget, PieChartWidget } = {
+  RadarChartWidget: dynamic(() => import("./dashboard-charts").then(m => m.RadarChartWidget), { ssr: false, loading: () => <div className="h-[280px]" /> }),
+  PieChartWidget: dynamic(() => import("./dashboard-charts").then(m => m.PieChartWidget), { ssr: false, loading: () => <div className="h-[220px]" /> }),
+}
 import { cn } from "@/lib/utils"
 import { expTier } from "@/lib/ranking-utils"
 import { DashboardExamsSection } from "./dashboard-exams"
@@ -56,7 +50,6 @@ export type RecentAttempt = {
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 
-const PIE_COLORS = ["#6366F1", "#8B5CF6", "#EC4899", "#F59E0B", "#22C55E", "#94A3B8"]
 
 function mongolianDate() {
   const now = new Date()
@@ -342,37 +335,7 @@ export function DashboardClient({
               Шалгалт өгсний дараа график харагдана
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <RadarChart data={radarData} margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
-                <PolarGrid stroke="hsl(var(--border))" gridType="polygon" />
-                <PolarAngleAxis
-                  dataKey="axis"
-                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                />
-                <Radar
-                  dataKey="value"
-                  stroke="#6366F1"
-                  fill="url(#radarGradient)"
-                  fillOpacity={0.4}
-                  dot={{ r: 3, fill: "#6366F1", strokeWidth: 0 }}
-                />
-                <defs>
-                  <linearGradient id="radarGradient" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stopColor="#6366F1" />
-                    <stop offset="100%" stopColor="#8B5CF6" />
-                  </linearGradient>
-                </defs>
-                <Tooltip
-                  formatter={(v) => [`${Number(v).toFixed(0)}`, ""]}
-                  contentStyle={{
-                    background: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
+            <RadarChartWidget data={radarData} />
           )}
         </div>
       </div>
@@ -387,41 +350,7 @@ export function DashboardClient({
               Өгөгдөл байхгүй
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="45%"
-                  innerRadius={50}
-                  outerRadius={80}
-                  paddingAngle={2}
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => [`${value} удаа`, name]}
-                  contentStyle={{
-                    background: "hsl(var(--popover))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  formatter={(value, entry) => {
-                    const count = (entry.payload as { value?: number })?.value ?? 0
-                    return `${value} (${count})`
-                  }}
-                  wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChartWidget data={pieData} />
           )}
         </div>
 
