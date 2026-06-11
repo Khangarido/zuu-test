@@ -10,7 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { parseQuestions } from "@/lib/parse-questions"
 import { bulkImportParsed } from "./_actions"
-import { MathText } from "@/components/math-text"
+import dynamic from "next/dynamic"
+const MathText = dynamic(() => import("@/components/math-text").then(m => m.MathText), { ssr: false })
 
 type OptionLabel = "A" | "B" | "C" | "D" | "E"
 

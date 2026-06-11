@@ -14,7 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { MathText } from "@/components/math-text"
+import dynamic from "next/dynamic"
+const MathText = dynamic(() => import("@/components/math-text").then(m => m.MathText), { ssr: false })
 import { ChevronLeft, ChevronRight, Send, Timer } from "lucide-react"
 import { cn } from "@/lib/utils"
 
