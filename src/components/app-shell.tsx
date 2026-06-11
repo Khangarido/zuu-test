@@ -35,19 +35,19 @@ export function AppShell({ children, fullName, email, isAdmin, username, avatarU
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link href="/dashboard" className="hover:opacity-80 transition-opacity flex items-center gap-2.5">
+          <Link href="/dashboard" prefetch={false} className="hover:opacity-80 transition-opacity flex items-center gap-2.5">
             <Image src="/logo.png" alt="Zuu Academy" width={40} height={40} className="h-10 w-10 rounded-xl object-cover" priority />
             <span className="font-bold text-lg tracking-tight hidden sm:inline-block">Zuu Academy</span>
           </Link>
           <nav className="hidden md:flex items-center gap-1">
-            <Link href="/medee" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <Link prefetch={false} href="/medee" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               <Newspaper className="size-4" />Мэдээ
             </Link>
-            <Link href="/classes" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <Link prefetch={false} href="/classes" className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
               <Users className="size-4" />Ангиуд
             </Link>
             {username && (
-              <Link href={`/profile/${username}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+              <Link prefetch={false} href={`/profile/${username}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
                 <User className="size-4" />Профайл
               </Link>
             )}
@@ -72,33 +72,33 @@ export function AppShell({ children, fullName, email, isAdmin, username, avatarU
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="cursor-pointer flex items-center gap-2">
+                  <Link prefetch={false} href="/dashboard" className="cursor-pointer flex items-center gap-2">
                     <LayoutDashboard className="size-4" />Самбар
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href={username ? `/profile/${username}` : "/profile/me"} className="cursor-pointer flex items-center gap-2">
+                  <Link prefetch={false} href={username ? `/profile/${username}` : "/profile/me"} className="cursor-pointer flex items-center gap-2">
                     <User className="size-4" />Профайл
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/medee" className="cursor-pointer flex items-center gap-2">
+                  <Link prefetch={false} href="/medee" className="cursor-pointer flex items-center gap-2">
                     <Newspaper className="size-4" />Мэдээ
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/classes" className="cursor-pointer flex items-center gap-2">
+                  <Link prefetch={false} href="/classes" className="cursor-pointer flex items-center gap-2">
                     <Users className="size-4" />Ангиуд
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/leaderboard" className="cursor-pointer flex items-center gap-2">
+                  <Link prefetch={false} href="/leaderboard" className="cursor-pointer flex items-center gap-2">
                     <Trophy className="size-4" />Эрэмбэ
                   </Link>
                 </DropdownMenuItem>
                 {isAdmin && (
                   <DropdownMenuItem asChild>
-                    <Link href="/admin" className="cursor-pointer flex items-center gap-2">
+                    <Link prefetch={false} href="/admin" className="cursor-pointer flex items-center gap-2">
                       <ShieldCheck className="size-4" />Админ хэсэг
                     </Link>
                   </DropdownMenuItem>
