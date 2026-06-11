@@ -574,15 +574,15 @@ export default function LandingPage() {
               <Image src="/logo.png" alt="Zuu Academy" width={36} height={36} className="h-9 w-9 rounded-xl object-cover" />
               <span className="font-extrabold text-lg tracking-tight">Zuu Academy</span>
             </Link>
-            <p className="text-xs text-white/18 pl-12">Ирээдүйгээ бүтээ</p>
+            <p className="text-xs text-white/50 pl-12">Ирээдүйгээ бүтээ</p>
           </div>
           <nav className="flex items-center gap-8">
-            <Link href="/login"    className="text-sm text-white/28 hover:text-white/70 transition-colors">Нэвтрэх</Link>
-            <Link href="/register" className="text-sm text-white/28 hover:text-white/70 transition-colors">Бүртгүүлэх</Link>
+            <Link href="/login"    className="text-sm text-white/60 hover:text-white/90 transition-colors">Нэвтрэх</Link>
+            <Link href="/register" className="text-sm text-white/60 hover:text-white/90 transition-colors">Бүртгүүлэх</Link>
           </nav>
         </div>
         <div className="mx-auto max-w-6xl mt-10 pt-8 border-t border-white/[0.04] text-center">
-          <p className="text-xs text-white/14">© 2026 Zuu Academy · Бүх эрх хуулиар хамгаалагдсан.</p>
+          <p className="text-xs text-white/40">© 2026 Zuu Academy · Бүх эрх хуулиар хамгаалагдсан.</p>
         </div>
       </footer>
     </div>

@@ -7,14 +7,16 @@ import "./globals.css"
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
   variable: "--font-sans",
-  display: "swap",
+  display: "optional",
+  preload: true,
 })
 
 const baloo2 = Baloo_2({
   subsets: ["latin"],
   weight: ["400", "600", "700"],
   variable: "--font-baloo2",
-  display: "swap",
+  display: "optional",
+  preload: false,
 })
 
 export const metadata: Metadata = {
