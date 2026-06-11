@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { redis } from "@/lib/redis"
 
 export class ExamStartError extends Error {
   code: "NOT_FOUND" | "NO_ACCESS" | "ALREADY_SUBMITTED"
@@ -87,18 +88,27 @@ export async function startOrResumeAttempt(
 ) {
   const supabase = await createClient()
 
-  const { data: examSet, error: examSetError } = await supabase
-    .from("exam_sets")
-    .select("id, title, duration_minutes, price, is_active, shuffle_questions, subject_id")
-    .eq("id", examSetId)
-    .maybeSingle()
+  const examSetCacheKey = `exam_set:${examSetId}`
+  let typedExamSet: ExamSetRow | null = await redis.get<ExamSetRow>(examSetCacheKey)
 
-  if (examSetError) throw new Error(examSetError.message)
-  if (!examSet || !examSet.is_active) {
-    throw new ExamStartError("NOT_FOUND", "Шалгалтын багц олдсонгүй.")
+  if (!typedExamSet) {
+    const { data: examSet, error: examSetError } = await supabase
+      .from("exam_sets")
+      .select("id, title, duration_minutes, price, is_active, shuffle_questions, subject_id")
+      .eq("id", examSetId)
+      .maybeSingle()
+
+    if (examSetError) throw new Error(examSetError.message)
+    if (!examSet || !examSet.is_active) {
+      throw new ExamStartError("NOT_FOUND", "Шалгалтын багц олдсонгүй.")
+    }
+    typedExamSet = examSet as ExamSetRow
+    await redis.set(examSetCacheKey, typedExamSet, { ex: 3600 })
   }
 
-  const typedExamSet = examSet as ExamSetRow
+  if (!typedExamSet.is_active) {
+    throw new ExamStartError("NOT_FOUND", "Шалгалтын багц олдсонгүй.")
+  }
 
   const { data: accessRow, error: accessError } = await supabase
     .from("access")

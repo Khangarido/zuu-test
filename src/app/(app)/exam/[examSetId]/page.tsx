@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { ExamStartError, startOrResumeAttempt } from "@/lib/exam/start"
+import { redis, QUESTIONS_TTL } from "@/lib/redis"
 import { ExamClient } from "./_client"
 
 type QuestionRow = {
@@ -46,17 +47,24 @@ export default async function ExamPage({
 
   const { attempt, examSet } = started
 
-  const { data: questionRows, error: questionError } = await supabase
-    .from("questions")
-    .select("id, question_text, image_url, question_type, topic_id, order_index, created_at, answer_options(id, option_label, option_text, image_url)")
-    .eq("exam_set_id", examSetId)
-    .order("order_index", { ascending: true })
-    .order("created_at", { ascending: true })
+  const cacheKey = `questions:${examSetId}`
+  let questions: QuestionRow[]
 
-  if (questionError) throw new Error(questionError.message)
+  const cached = await redis.get<QuestionRow[]>(cacheKey)
+  if (cached) {
+    questions = cached
+  } else {
+    const { data: questionRows, error: questionError } = await supabase
+      .from("questions")
+      .select("id, question_text, image_url, question_type, topic_id, order_index, created_at, answer_options(id, option_label, option_text, image_url)")
+      .eq("exam_set_id", examSetId)
+      .order("order_index", { ascending: true })
+      .order("created_at", { ascending: true })
 
-  // Always display questions in order_index order — no shuffle.
-  const questions = (questionRows ?? []) as QuestionRow[]
+    if (questionError) throw new Error(questionError.message)
+    questions = (questionRows ?? []) as QuestionRow[]
+    await redis.set(cacheKey, questions, { ex: QUESTIONS_TTL })
+  }
 
   const { data: savedAnswers, error: answersError } = await supabase
     .from("attempt_answers")
