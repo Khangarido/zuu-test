@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "Zuu Academy — ЭЕШ Mock Test",
   description:
     "Zuu Academy — zuutest.site | Элсэлтийн ерөнхий шалгалтад бэлдэхэд зориулсан бодит орчин, сэдэвчилсэн дасгал, гүйцэтгэлийн дэлгэрэнгүй шинжилгээтэй платформ.",
-  icons: { icon: "/logo.png", apple: "/logo.png" },
+  icons: { icon: "/favicon.ico" },
 }
 
 export default function RootLayout({
