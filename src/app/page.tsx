@@ -334,12 +334,7 @@ export default function LandingPage() {
             ЭЕШ-д бэлтгэх №1 платформ
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 40 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-            className="text-[clamp(4rem,13vw,9rem)] font-black tracking-tight leading-[0.9] mb-8"
-          >
+          <h1 className="text-[clamp(4rem,13vw,9rem)] font-black tracking-tight leading-[0.9] mb-8">
             <span className="block text-white drop-shadow-2xl">Ирээдүйгээ</span>
             <span className="block" style={{
               background: "linear-gradient(135deg, #818cf8 0%, #a78bfa 45%, #e879f9 100%)",
@@ -350,7 +345,7 @@ export default function LandingPage() {
             }}>
               бүтээ
             </span>
-          </motion.h1>
+          </h1>
 
           <motion.p
             initial={{ opacity: 0, y: 30 }}
