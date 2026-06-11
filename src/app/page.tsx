@@ -582,7 +582,7 @@ export default function LandingPage() {
           </nav>
         </div>
         <div className="mx-auto max-w-6xl mt-10 pt-8 border-t border-white/[0.04] text-center">
-          <p className="text-xs text-white/40">© 2026 Zuu Academy · Бүх эрх хуулиар хамгаалагдсан.</p>
+          <p className="text-xs text-white/55">© 2026 Zuu Academy · Бүх эрх хуулиар хамгаалагдсан.</p>
         </div>
       </footer>
     </div>
