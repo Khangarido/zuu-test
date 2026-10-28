@@ -5,6 +5,20 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { requireSuperAdmin } from "@/app/admin/_auth"
 import { updateRankScore } from "@/lib/ranking"
 
+// listUsers() returns one page (50 users by default), so look through every page.
+async function findAuthUserByEmail(email: string) {
+  const admin = getSupabaseAdmin()
+  const wanted = email.trim().toLowerCase()
+  const perPage = 1000
+  for (let page = 1; ; page++) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage })
+    if (error) throw new Error(error.message)
+    const match = data.users.find((u) => u.email?.toLowerCase() === wanted)
+    if (match) return match
+    if (data.users.length < perPage) return null
+  }
+}
+
 export async function promoteToAdmin(userId: string) {
   await requireSuperAdmin()
   const admin = getSupabaseAdmin()
@@ -19,9 +33,7 @@ export async function promoteToAdmin(userId: string) {
 export async function findUserByEmail(email: string): Promise<{ id: string; full_name: string | null; role: string } | null> {
   await requireSuperAdmin()
   const admin = getSupabaseAdmin()
-  const { data: { users }, error } = await admin.auth.admin.listUsers()
-  if (error) throw new Error(error.message)
-  const authUser = users.find((u) => u.email === email.trim().toLowerCase())
+  const authUser = await findAuthUserByEmail(email)
   if (!authUser) return null
   const { data } = await admin.from("profiles").select("id, full_name, role").eq("id", authUser.id).maybeSingle()
   return data
@@ -41,9 +53,7 @@ export async function findUserByUsername(username: string): Promise<{ id: string
 export async function setRoleByEmail(email: string, role: "admin" | "student"): Promise<void> {
   await requireSuperAdmin()
   const admin = getSupabaseAdmin()
-  const { data: { users }, error: authError } = await admin.auth.admin.listUsers()
-  if (authError) throw new Error(authError.message)
-  const authUser = users.find((u) => u.email === email.trim().toLowerCase())
+  const authUser = await findAuthUserByEmail(email)
   if (!authUser) throw new Error("Тухайн имэйл бүртгэлтэй хэрэглэгч олдсонгүй")
   const { error } = await admin.from("profiles").update({ role }).eq("id", authUser.id)
   if (error) throw new Error(error.message)
