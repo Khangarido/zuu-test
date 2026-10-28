@@ -1,0 +1,57 @@
+# Next.js app for zuutest.site.
+#
+#   cd /opt/zuu/app            # checkout of this repo
+#   cp .env.example deploy/.env && $EDITOR deploy/.env
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.app.yml build   # or: pull
+#   docker compose --env-file deploy/.env -f deploy/docker-compose.app.yml up -d
+#
+# Published on 127.0.0.1 ONLY. The reverse proxy that owns 80/443 (the one that
+# already serves muur.site) is the only thing that talks to it. If that proxy
+# runs in Docker, also add deploy/docker-compose.app.edge.yml (see deploy/README.md).
+
+name: zuu-app
+
+services:
+  app:
+    image: ${APP_IMAGE:-zuu-app}:${APP_TAG:-latest}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      args:
+        # Public values, inlined into the bundle at build time.
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?set NEXT_PUBLIC_SUPABASE_URL in deploy/.env}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:?set NEXT_PUBLIC_SUPABASE_ANON_KEY in deploy/.env}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:?set NEXT_PUBLIC_APP_URL in deploy/.env}
+    container_name: zuu-app
+    restart: unless-stopped
+    init: true
+    # Runtime secrets (service role key, BYL_*, UPSTASH_*) come from here and are
+    # not baked into the image.
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    ports:
+      - "127.0.0.1:${APP_PORT:-3100}:3000"
+    # Guard rail so a runaway Node process can't starve muur.site.
+    mem_limit: 768m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - next-cache:/app/.next/cache
+    # OPTIONAL latency tweak: make server-side calls to the public API host stay
+    # on this machine instead of leaving through the provider's network. Enable
+    # only after verifying it works (deploy/MIGRATION.md, "Server-side hairpin"):
+    # extra_hosts:
+    #   - "supabase.example.com:host-gateway"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  next-cache:

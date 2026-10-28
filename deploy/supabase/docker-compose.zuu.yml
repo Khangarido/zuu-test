@@ -1,0 +1,101 @@
+# Trimmed overlay for the OFFICIAL supabase/docker stack (pinned in setup.sh).
+# Loaded together with upstream's docker-compose.yml via COMPOSE_FILE (setup.sh
+# writes it into .env), so image tags / init SQL / gateway config remain upstream's.
+#
+# What it does:
+#   * keeps: db, auth (GoTrue), rest (PostgREST), realtime, storage, api-gw (Envoy)
+#   * drops from the default `up`: functions, supavisor (pooler), imgproxy
+#   * studio + meta only with `--profile admin` (never exposed publicly)
+#   * binds the gateway to 127.0.0.1 on a non-default port (muur.site safe)
+#   * caps memory per container so this stack can't starve muur.site
+#   * serves custom auth email templates (the app signs users up with a 6-digit OTP)
+#
+# Requires Docker Compose >= 2.24 (!override / !reset), same as upstream's overlays.
+
+# Rotate container logs per service. (Changing /etc/docker/daemon.json would need a
+# daemon restart, which would bounce muur.site's containers too; do not do that.)
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  # ── not used by the app ────────────────────────────────────────────────────
+  functions:
+    profiles: ["unused"]
+  supavisor:
+    profiles: ["unused"]     # also frees host ports 5432/6543
+  imgproxy:
+    profiles: ["unused"]     # only needed for on-the-fly image transforms
+
+  # ── admin tools: `docker compose --profile admin up -d studio meta` ────────
+  studio:
+    logging: *logging
+    profiles: ["admin"]
+    mem_limit: 768m
+  meta:
+    logging: *logging
+    profiles: ["admin"]
+    mem_limit: 256m
+
+  # ── gateway: loopback only; the host proxy terminates TLS ──────────────────
+  api-gw:
+    logging: *logging
+    ports: !override
+      - "127.0.0.1:${API_GW_HTTP_PORT:-8100}:8000/tcp"
+    # Upstream makes the gateway wait for studio. Studio is optional here.
+    depends_on: !reset {}
+    mem_limit: 256m
+
+  auth:
+    logging: *logging
+    mem_limit: 256m
+    depends_on:
+      mailtemplates:
+        condition: service_started
+    environment:
+      # Emails: the app uses signUp() + verifyOtp({type:"email"}) so the mail
+      # MUST contain {{ .Token }} (the stock template only has a link).
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://mailtemplates/confirmation.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://mailtemplates/recovery.html
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: ${MAILER_SUBJECT_CONFIRMATION:-Баталгаажуулах код}
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: ${MAILER_SUBJECT_RECOVERY:-Нууц үг шинэчлэх}
+      GOTRUE_MAILER_OTP_EXP: ${MAILER_OTP_EXP:-3600}
+      # GoTrue's default cap is 30 emails/hour for the whole instance, which a
+      # registration spike would hit.
+      GOTRUE_RATE_LIMIT_EMAIL_SENT: ${AUTH_RATE_LIMIT_EMAIL_SENT:-300}
+
+  # Tiny static server for the email templates above (~5 MB RAM).
+  mailtemplates:
+    logging: *logging
+    container_name: supabase-mailtemplates
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    volumes:
+      - ./volumes/zuu-templates:/usr/share/nginx/html:ro,z
+    mem_limit: 32m
+
+  rest:
+    logging: *logging
+    mem_limit: 256m
+
+  realtime:
+    logging: *logging
+    mem_limit: 768m
+
+  storage:
+    logging: *logging
+    mem_limit: 384m
+    # No image transforms are used, so imgproxy is not started.
+    depends_on: !override
+      db:
+        condition: service_healthy
+      rest:
+        condition: service_started
+    environment:
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+
+  db:
+    logging: *logging
+    mem_limit: 1536m
