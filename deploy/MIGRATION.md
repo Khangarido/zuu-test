@@ -216,8 +216,9 @@ dst() { docker exec -i supabase-db psql -X -v ON_ERROR_STOP=1 "$@"; }
 { echo "set session_replication_role = replica;"; cat auth-data.sql; } | dst -U postgres -d postgres --single-transaction -f -
 #     If this says "permission denied to set parameter session_replication_role", repeat with -U supabase_admin.
 
-# 4.2 public schema + data
-dst -U postgres -d postgres --single-transaction -f - < public.sql
+# 4.2 public schema + data. pg_dump 17 emits `CREATE SCHEMA public;`, which already exists on the target
+#     and aborts the restore, so that single line is filtered out.
+sed '/^CREATE SCHEMA public;$/d' public.sql | dst -U postgres -d postgres --single-transaction -f -
 
 # 4.3 things that live outside `public`: the auth.users trigger and Realtime publication membership
 dst -U supabase_admin -d postgres -f - < /opt/zuu/app/deploy/sql/post-restore.sql
