@@ -18,7 +18,10 @@
 # Then follow deploy/supabase/README.md.
 
 set -eu
-umask 077
+# Containers run as their own users (postgres, nginx, envoy...) and read the bind-mounted
+# files under volumes/. A 077 umask makes them root-only and the database's first-boot init
+# aborts with "Permission denied". Only .env holds secrets, and it is chmod 600 below.
+umask 022
 
 # Pinned upstream commit this overlay was validated against (2026-10-28).
 # To upgrade, change this, re-run `docker compose config`, read upstream's
@@ -84,6 +87,7 @@ set_env() { # set_env KEY VALUE  (values may contain | & = /)
 
 log "Creating .env and generating secrets (not printed)"
 cp .env.example .env
+chmod 600 .env
 sh utils/generate-keys.sh --update-env >/dev/null
 rm -f .env.old
 
