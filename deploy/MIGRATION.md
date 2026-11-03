@@ -216,9 +216,12 @@ dst() { docker exec -i supabase-db psql -X -v ON_ERROR_STOP=1 "$@"; }
 { echo "set session_replication_role = replica;"; cat auth-data.sql; } | dst -U postgres -d postgres --single-transaction -f -
 #     If this says "permission denied to set parameter session_replication_role", repeat with -U supabase_admin.
 
-# 4.2 public schema + data. pg_dump 17 emits `CREATE SCHEMA public;`, which already exists on the target
-#     and aborts the restore, so that single line is filtered out.
-sed '/^CREATE SCHEMA public;$/d' public.sql | dst -U postgres -d postgres --single-transaction -f -
+# 4.2 public schema + data. Two kinds of line are filtered out of the pg_dump 17 output:
+#     - `CREATE SCHEMA public;`: the schema already exists on the target and this aborts the restore.
+#     - `ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin ...`: `postgres` may not run these
+#       ("permission denied to change default privileges"); the image already sets identical defaults.
+pg_filter() { sed -e '/^CREATE SCHEMA public;$/d' -e '/^ALTER DEFAULT PRIVILEGES FOR ROLE supabase_admin /d'; }
+pg_filter < public.sql | dst -U postgres -d postgres --single-transaction -f -
 
 # 4.3 things that live outside `public`: the auth.users trigger and Realtime publication membership
 dst -U supabase_admin -d postgres -f - < /opt/zuu/app/deploy/sql/post-restore.sql
@@ -495,7 +498,7 @@ sudo crontab -e
 
 **Restore** (disaster recovery) is the §4 procedure using the nightly files: bring up a fresh stack (`setup.sh`, then copy the backed-up `env.supabase`
 over `.env` so the JWT secret, keys and DB password match what the app and the dumps expect), then, in order:
-`auth-data.sql.gz` → `public.sql.gz` → `post-restore.sql` → `storage-policies.sql`, and for files: stop `storage`,
+`auth-data.sql.gz` → `public.sql.gz` (through the same `pg_filter` as §4.2: `gunzip -c public.sql.gz | pg_filter | dst ...`) → `post-restore.sql` → `storage-policies.sql`, and for files: stop `storage`,
 `tar --xattrs -xzf storage.tar.gz -C /opt/zuu/supabase/volumes`, load `storage-data.sql.gz` (preceded by `set session_replication_role = replica;`, like §4.1), start `storage`.
 (`full.dump` is the fallback if the logical files are somehow unusable; it is a plain `pg_restore` target, but restoring a whole Supabase database over a fresh one
 needs care with the pre-existing system schemas, so prefer the logical path.)
