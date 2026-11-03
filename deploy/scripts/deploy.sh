@@ -20,7 +20,12 @@ ENV_FILE=deploy/.env
 get() { local v; v="${!1:-}"; [ -n "$v" ] && { printf '%s' "$v"; return; }; grep -E "^$1=" "$ENV_FILE" | tail -n1 | cut -d= -f2- || true; }
 IMAGE="$(get APP_IMAGE)"; IMAGE="${IMAGE:-zuu-app}"
 CONTAINER=zuu-app
-compose() { docker compose --env-file "$ENV_FILE" -f deploy/docker-compose.app.yml "$@"; }
+# EDGE_NETWORK set => the proxy runs in Docker: join that shared network (see README).
+COMPOSE_FILES=(-f deploy/docker-compose.app.yml)
+if [ -n "$(get EDGE_NETWORK)" ]; then
+  COMPOSE_FILES+=(-f deploy/docker-compose.app.edge.yml)
+fi
+compose() { docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" "$@"; }
 
 if [[ "$IMAGE" == */* ]]; then
   MODE=pull
@@ -44,7 +49,7 @@ if [ "$MODE" = pull ]; then
 else
   # nice: don't let the build starve muur.site of CPU
   APP_IMAGE="$IMAGE" APP_TAG="$TAG" nice -n 19 \
-    docker compose --env-file "$ENV_FILE" -f deploy/docker-compose.app.yml build app
+    docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" build app
 fi
 
 APP_IMAGE="$IMAGE" APP_TAG="$TAG" compose up -d app
