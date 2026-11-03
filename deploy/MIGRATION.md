@@ -306,6 +306,10 @@ docker exec supabase-db psql -U postgres -d postgres -c "select policyname, cmd 
 defines the `avatars` ones: public insert, public read, and owner-only update/delete where the file name's first
 segment equals `auth.uid()`; the exported file is authoritative because it also includes the other three buckets.
 
+**Extra step for this project.** The hosted project only has policies for `question-images`, and no `class-photos`/`medee-photos` buckets, so
+uploads to avatars, class photos and medee photos were failing there. Run `deploy/sql/storage-extra.sql` on the target (as `supabase_admin`) to
+create those buckets and policies (idempotent). Skip it if your own preflight shows they already exist on hosted.
+
 ---
 
 ## 7. Swap env vars and test on `next.zuutest.site`
