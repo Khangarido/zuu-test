@@ -26,9 +26,12 @@ const ONLY = args.filter((a) => !a.startsWith("--"));
 const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY ?? 4));
 const PAGE = 100;
 
+// Legacy keys are JWTs (eyJ...) and go in both headers. New-style keys (sb_secret_...) are NOT JWTs:
+// they must be sent as `apikey` only, and the gateway adds the right Authorization itself.
+// Sending them as a Bearer token fails with "Invalid Compact JWS".
 const mkClient = (base, key) => ({
   base: base.replace(/\/+$/, ""),
-  headers: { apikey: key, Authorization: `Bearer ${key}` },
+  headers: key.startsWith("eyJ") ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key },
 });
 const src = mkClient(process.env.SRC_URL, process.env.SRC_SERVICE_ROLE_KEY);
 const dst = mkClient(process.env.DST_URL, process.env.DST_SERVICE_ROLE_KEY);
