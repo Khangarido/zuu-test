@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { supabaseAuthCookieName, supabaseServerUrl } from "./config";
 
 const PROTECTED = ["/dashboard", "/exam", "/results", "/profile", "/admin"];
 const ADMIN_ONLY = ["/admin"];
@@ -9,9 +10,10 @@ export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    supabaseServerUrl(),
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      cookieOptions: { name: supabaseAuthCookieName() },
       cookies: {
         getAll() {
           return request.cookies.getAll();

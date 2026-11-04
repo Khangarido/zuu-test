@@ -335,7 +335,12 @@ The app needs **no code change** to point at the new stack; only these variables
 All other variables (BYL, Upstash, Resend) are unchanged. Vercel's environment is **not** touched; it keeps
 pointing at HOSTED until you move DNS.
 
-Optional latency tweak, **server-side hairpin**: the app's server calls the public API URL, which leaves through the
+**Recommended (already in the code): `SUPABASE_INTERNAL_URL`.** Set `SUPABASE_INTERNAL_URL=http://supabase-envoy:8000` in `deploy/.env` (needs
+`EDGE_NETWORK` so the app shares a Docker network with the gateway) and restart the app. The Next.js server then talks to Supabase directly instead of
+through the public address; on the real VPS this cut each call from ~0.2 s to ~0.006 s. The browser is unaffected, and the auth cookie keeps its
+public name (`src/lib/supabase/config.ts`), so nobody is logged out. It supersedes the `extra_hosts` tweak below.
+
+Older optional tweak, **server-side hairpin**: the app's server calls the public API URL, which leaves through the
 provider network and comes back. To keep that on the machine, uncomment `extra_hosts` in `deploy/docker-compose.app.yml`
 (`"supabase.zuutest.site:host-gateway"`) after verifying it works, since the host firewall must allow the Docker bridge to reach
 :443:
