@@ -1,12 +1,13 @@
 // SERVER-ONLY. Never import in client components.
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { supabaseServerUrl } from './config'
 
 let _admin: SupabaseClient | null = null
 
 export function getSupabaseAdmin(): SupabaseClient {
   if (!_admin) {
     _admin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      supabaseServerUrl(),
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {
         auth: {

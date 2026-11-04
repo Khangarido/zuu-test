@@ -1,0 +1,20 @@
+# Only needed when the proxy that serves muur.site runs IN DOCKER.
+#
+# A containerised proxy cannot reach 127.0.0.1 on the host, so instead of
+# publishing to the host it joins a shared network and talks to the app by name
+# (zuu-app:3000). Find the proxy's network with `docker inspect <proxy> | grep -A5 Networks`
+# or create one shared by both: `docker network create proxy_edge` and attach
+# the proxy to it.
+#
+#   docker compose --env-file deploy/.env \
+#     -f deploy/docker-compose.app.yml -f deploy/docker-compose.app.edge.yml up -d
+services:
+  app:
+    networks:
+      - default
+      - edge
+
+networks:
+  edge:
+    name: ${EDGE_NETWORK:-proxy_edge}
+    external: true

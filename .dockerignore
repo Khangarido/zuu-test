@@ -1,0 +1,30 @@
+# VCS / CI / editor
+.git
+.github
+.claude
+.vscode
+.idea
+
+# Dependencies and build output are rebuilt inside the image
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+
+# Secrets must never enter the build context
+.env
+.env.*
+!.env.example
+*.pem
+
+# Not needed by the app image
+deploy
+supabase
+Dockerfile
+.dockerignore
+docker-compose*.yml
+README.md
+npm-debug.log*
+.DS_Store
