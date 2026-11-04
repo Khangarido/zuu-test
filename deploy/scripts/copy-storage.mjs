@@ -26,12 +26,19 @@ const ONLY = args.filter((a) => !a.startsWith("--"));
 const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY ?? 4));
 const PAGE = 100;
 
-// Legacy keys are JWTs (eyJ...) and go in both headers. New-style keys (sb_secret_...) are NOT JWTs:
-// they must be sent as `apikey` only, and the gateway adds the right Authorization itself.
-// Sending them as a Bearer token fails with "Invalid Compact JWS".
+// The Storage API needs a JWT in `Authorization`. New-style keys (sb_secret_...) are not JWTs and
+// the hosted Storage API rejects them ("Invalid Compact JWS" / "headers must have required property
+// 'authorization'"), so use the legacy `service_role` key (starts with eyJ): Supabase dashboard ->
+// Project Settings -> API Keys -> "Legacy API Keys" tab, or SUPABASE_SERVICE_ROLE_KEY from Vercel.
+for (const k of ["SRC_SERVICE_ROLE_KEY", "DST_SERVICE_ROLE_KEY"]) {
+  if (!process.env[k].startsWith("eyJ")) {
+    console.error(`${k} is not a JWT (it should start with "eyJ"). Use the legacy service_role key.`);
+    process.exit(2);
+  }
+}
 const mkClient = (base, key) => ({
   base: base.replace(/\/+$/, ""),
-  headers: key.startsWith("eyJ") ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key },
+  headers: { apikey: key, Authorization: `Bearer ${key}` },
 });
 const src = mkClient(process.env.SRC_URL, process.env.SRC_SERVICE_ROLE_KEY);
 const dst = mkClient(process.env.DST_URL, process.env.DST_SERVICE_ROLE_KEY);
