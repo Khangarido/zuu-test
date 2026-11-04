@@ -270,6 +270,18 @@ cs --dry-run          # lists buckets/object counts/sizes; writes nothing
 cs                    # creates buckets (same public flag, size limit, MIME types) and uploads every object
 ```
 
+**If hosted only has new-style `sb_secret_` keys** (no `eyJ…` legacy `service_role` under *API Keys → Legacy*), hosted Storage rejects them and `cs` cannot work.
+Use the key-less route for public buckets instead: list the objects from the hosted DB and download them by their public URLs:
+
+```bash
+srcpg sh -c 'psql "$SRC_DB_URL" -X -At -c "select bucket_id || chr(47) || name from storage.objects order by 1"' > /var/backups/zuu/migration/objects.txt
+wc -l /var/backups/zuu/migration/objects.txt
+cps() { docker run --rm -i --network host -e SRC_URL -e DST_URL -e DST_SERVICE_ROLE_KEY -v /opt/zuu/app/deploy/scripts:/s:ro node:22-alpine node /s/copy-storage-public.mjs "$@"; }
+cps --dry-run < /var/backups/zuu/migration/objects.txt && cps < /var/backups/zuu/migration/objects.txt
+```
+
+(Needs `SRC_URL`, `DST_URL`, `DST_SERVICE_ROLE_KEY` exported as above; no hosted key is involved. Only works for public buckets.)
+
 It exits non-zero and lists any object that failed; re-run until clean. Object counts and sizes should match the
 `storage objects per bucket` section of `preflight.txt`.
 
