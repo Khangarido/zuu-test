@@ -1,3 +1,4 @@
+import { attachProfiles } from "@/lib/attach-profiles"
 import { notFound, redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
@@ -29,13 +30,15 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
 
   const admin = getSupabaseAdmin()
 
-  const { data: cls } = await admin
+  const { data: cls0, error: clsErr } = await admin
     .from("classes")
-    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id, profiles!teacher_id(full_name, username, avatar_url)")
+    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id")
     .eq("slug", slug)
     .maybeSingle()
 
-  if (!cls) notFound()
+  if (clsErr) console.error("[class] query failed:", clsErr.message)
+  if (!cls0) notFound()
+  const [cls] = await attachProfiles(admin, [cls0], "teacher_id")
 
   // Determine membership and roles
   const { data: membership } = await supabase
@@ -81,12 +84,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
   }
 
   // Fetch posts
-  const { data: rawPosts } = await admin
+  const { data: rawPosts0 } = await admin
     .from("class_posts")
-    .select("id, title, body, photo_url, created_at, author_id, profiles!author_id(full_name, username, avatar_url)")
+    .select("id, title, body, photo_url, created_at, author_id")
     .eq("class_id", cls.id)
     .order("created_at", { ascending: false })
 
+  const rawPosts = await attachProfiles(admin, rawPosts0 ?? [], "author_id")
   const postIds = (rawPosts ?? []).map((p: any) => p.id as string)
 
   // Reaction counts per post
@@ -111,12 +115,14 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
     .eq("class_id", cls.id)
 
   // Members (only if teacher)
-  const { data: rawMembers } = isTeacher
+  const { data: rawMembers0 } = isTeacher
     ? await admin
         .from("class_members")
-        .select("user_id, role, profiles!user_id(full_name, username, avatar_url, rank_tier)")
+        .select("user_id, role")
         .eq("class_id", cls.id)
     : { data: [] }
+
+  const rawMembers = await attachProfiles(admin, (rawMembers0 ?? []) as any[], "user_id", "full_name, username, avatar_url, rank_tier")
 
   // Normalise data
   const initialPosts = (rawPosts ?? []).map((p: any) => ({

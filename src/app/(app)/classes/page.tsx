@@ -4,6 +4,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { AppShell } from "@/components/app-shell"
 import { ClassesClient } from "@/components/classes-client"
 import { BookOpen } from "lucide-react"
+import { attachProfiles } from "@/lib/attach-profiles"
 
 export const dynamic = "force-dynamic"
 
@@ -30,22 +31,24 @@ export default async function ClassesPage() {
   const privateClassIds = memberClassIds.filter(Boolean)
 
   // Public classes
-  const { data: publicRaw } = await admin
+  const { data: publicRaw0, error: publicErr } = await admin
     .from("classes")
-    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id, profiles!teacher_id(full_name, username, avatar_url)")
-    .eq("is_private", false)
+    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id")
+    .or("is_private.is.null,is_private.eq.false")
     .order("member_count", { ascending: false })
     .limit(60)
+  if (publicErr) console.error("[classes] public query failed:", publicErr.message)
+  const publicRaw = await attachProfiles(admin, publicRaw0 ?? [], "teacher_id")
 
   // Private classes where user is a member
   let privateRaw: any[] = []
   if (privateClassIds.length > 0) {
     const { data } = await admin
       .from("classes")
-      .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id, profiles!teacher_id(full_name, username, avatar_url)")
+      .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id")
       .eq("is_private", true)
       .in("id", privateClassIds)
-    privateRaw = data ?? []
+    privateRaw = await attachProfiles(admin, data ?? [], "teacher_id")
   }
 
   function normalise(raw: any[]) {
