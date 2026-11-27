@@ -52,6 +52,10 @@ else
     docker compose --env-file "$ENV_FILE" "${COMPOSE_FILES[@]}" build app
 fi
 
+# Database first: apply any new migrations so the schema is ready before the new code starts.
+# If this fails the script stops here and the running version keeps serving.
+[ -n "${SKIP_MIGRATE:-}" ] || ./deploy/scripts/migrate.sh
+
 APP_IMAGE="$IMAGE" APP_TAG="$TAG" compose up -d app
 
 echo "==> waiting for healthy"

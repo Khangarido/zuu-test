@@ -467,6 +467,8 @@ It only touches the `zuu-app` project.
 
 ### 10.2 GitHub Actions (builds off the VPS)
 
+> **Superseded by [`AUTO-DEPLOY.md`](./AUTO-DEPLOY.md)**: the current pipeline (tests, automatic deploy on merge, database migrations, locked-down SSH key). Follow that file; the steps below are the older manual-trigger version.
+
 `.github/workflows/deploy.yml` builds the image on GitHub (cached), pushes it to GHCR, then SSHes in and runs `deploy.sh` with that tag.
 It is `workflow_dispatch` only until you enable the `push` trigger at the top of the file.
 

@@ -1,20 +1,17 @@
-# Build the app image on GitHub (not on the VPS, so muur.site keeps its RAM) and
-# redeploy it over SSH. MANUAL ONLY until the VPS is set up and verified;
-# switch on auto-deploy after cutover by uncommenting the push trigger.
+# Automatic deploy: every push to `main` (i.e. every merged pull request) is tested, built into an
+# image on GitHub (so muur.site keeps its RAM), and rolled out to the VPS over a locked-down SSH key.
+# The VPS applies pending database migrations first, starts the new version, waits until it is
+# healthy and rolls back to the previous version by itself if it is not.
 #
-# One-time setup (see deploy/MIGRATION.md, "Redeploy flow"):
-#   Repository Variables : NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
-#                          NEXT_PUBLIC_APP_URL            (public by design, build-time)
-#   Repository Secrets   : DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS
-#   Repository Variable  : DEPLOY_APP_DIR (default /opt/zuu/app)
-#   On the VPS           : `docker login ghcr.io` once with a read:packages token,
-#                          and a deploy/.env with the runtime secrets.
+# One-time setup: deploy/AUTO-DEPLOY.md.
 name: Deploy to VPS
 
 on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
   workflow_dispatch:
-  # push:
-  #   branches: [main]
 
 concurrency:
   group: deploy-production
@@ -25,7 +22,19 @@ permissions:
   packages: write
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     outputs:
       image: ${{ steps.meta.outputs.image }}
@@ -57,6 +66,7 @@ jobs:
             NEXT_PUBLIC_SUPABASE_URL=${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
             NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
             NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
+            DEPLOYMENT_ID=${{ steps.meta.outputs.tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -75,14 +85,21 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
 
-      - name: Redeploy
+      # The key on the server is pinned to deploy/scripts/ci-deploy.sh, which accepts only this command.
+      - name: Roll out
         env:
           HOST: ${{ secrets.DEPLOY_HOST }}
           SSH_USER: ${{ secrets.DEPLOY_USER }}
-          APP_DIR: ${{ vars.DEPLOY_APP_DIR || '/opt/zuu/app' }}
           IMAGE: ${{ needs.build.outputs.image }}
           TAG: ${{ needs.build.outputs.tag }}
         run: |
           ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
-            "$SSH_USER@$HOST" \
-            "cd '$APP_DIR' && git pull --ff-only && APP_IMAGE='$IMAGE' APP_TAG='$TAG' ./deploy/scripts/deploy.sh"
+            "$SSH_USER@$HOST" "deploy $IMAGE $TAG"
+
+      - name: Check the live site
+        env:
+          APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+        run: |
+          curl -fsS --retry 10 --retry-delay 6 --retry-all-errors "$APP_URL/api/health" | grep -qx ok
+          curl -fsS -o /dev/null --retry 5 --retry-delay 5 --retry-all-errors "$APP_URL/login"
+          echo "Live site answers."
