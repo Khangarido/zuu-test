@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { redis } from "@/lib/redis"
+import { isFillInCorrect } from "@/lib/exam/grading"
 
 export class ExamStartError extends Error {
   code: "NOT_FOUND" | "NO_ACCESS" | "ALREADY_SUBMITTED"
@@ -58,9 +59,7 @@ async function autoSubmitExpiredAttempt(attemptId: string, examSetId: string) {
     totalPoints += pts
     let isCorrect = false
     if (q.question_type === "fill_in") {
-      const student = (textMap[q.id] ?? "").trim().toLowerCase()
-      const answer = (q.correct_answer ?? "").trim().toLowerCase()
-      if (student && answer && student === answer) isCorrect = true
+      isCorrect = isFillInCorrect(textMap[q.id], q.correct_answer)
     } else {
       const opts = Array.isArray(q.answer_options) ? q.answer_options : []
       const correctOpt = (opts as Array<{ id: string; is_correct: boolean }>).find((o) => o.is_correct)

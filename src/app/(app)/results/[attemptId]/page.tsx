@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MathText } from "@/components/math-text"
 import { CheckCircle2, XCircle, RotateCcw, ArrowLeft, CheckCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatAcceptedAnswers, isFillInCorrect } from "@/lib/exam/grading"
 
 type AnswerOption = {
   id: string
@@ -23,6 +24,7 @@ type QuestionResult = {
   image_url: string | null
   question_type: "multiple_choice" | "fill_in"
   correct_answer: string | null
+  section_name: string | null
   explanation: string | null
   topic_name: string | null
   answer_options: AnswerOption[]
@@ -120,7 +122,7 @@ export default async function ResultsPage({
   const { data: questions } = await supabase
     .from("questions")
     .select(
-      "id, question_text, image_url, question_type, correct_answer, explanation, topic_id, topics(name), answer_options(id, option_label, option_text, is_correct, image_url)"
+      "id, question_text, image_url, question_type, correct_answer, section_name, explanation, topic_id, topics(name), answer_options(id, option_label, option_text, is_correct, image_url)"
     )
     .eq("exam_set_id", examSet?.id ?? "")
     .order("order_index", { ascending: true })
@@ -151,13 +153,7 @@ export default async function ResultsPage({
 
     let isCorrect = false
     if (qType === "fill_in") {
-      const studentAns = (textAnswer ?? "").trim().toLowerCase()
-      const correctAns = (
-        (q as { correct_answer?: string | null }).correct_answer ?? ""
-      )
-        .trim()
-        .toLowerCase()
-      isCorrect = !!studentAns && !!correctAns && studentAns === correctAns
+      isCorrect = isFillInCorrect(textAnswer, (q as { correct_answer?: string | null }).correct_answer)
     } else {
       isCorrect = !!correctOption && selectedId === correctOption.id
     }
@@ -168,6 +164,7 @@ export default async function ResultsPage({
       image_url: (q as { image_url?: string | null }).image_url ?? null,
       question_type: qType,
       correct_answer: (q as { correct_answer?: string | null }).correct_answer ?? null,
+      section_name: (q as { section_name?: string | null }).section_name ?? null,
       explanation: q.explanation,
       topic_name: topicName,
       answer_options: options.sort(
@@ -362,6 +359,9 @@ export default async function ResultsPage({
                       <span className="text-xs font-bold text-muted-foreground shrink-0 mt-0.5">
                         {index + 1}.
                       </span>
+                      {qr.section_name && (
+                        <Badge variant="secondary" className="text-xs shrink-0">{qr.section_name}</Badge>
+                      )}
                       <div className="text-sm font-medium leading-relaxed">
                         <MathText text={qr.question_text} />
                       </div>
@@ -401,7 +401,7 @@ export default async function ResultsPage({
                       <div className="rounded-lg border border-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-3 py-2">
                         <span className="text-muted-foreground">Зөв хариулт: </span>
                         <span className="font-semibold text-emerald-700 dark:text-emerald-300">
-                          {qr.correct_answer}
+                          {formatAcceptedAnswers(qr.correct_answer)}
                         </span>
                       </div>
                     )}

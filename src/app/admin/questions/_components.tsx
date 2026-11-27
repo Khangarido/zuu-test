@@ -41,6 +41,9 @@ type QuestionData = {
   points: number
   order_index: number
   section_name: string | null
+  section_note: string | null
+  question_type: "multiple_choice" | "fill_in"
+  correct_answer: string | null
   explanation: string | null
   topic_name: string | null
   image_url: string | null
@@ -225,6 +228,90 @@ function OptionRow({
   )
 }
 
+// ─── Question type + fill-in answer + section note (shared by create and edit) ─
+
+type QuestionType = "multiple_choice" | "fill_in"
+
+function QuestionTypePicker({
+  value,
+  onChange,
+}: {
+  value: QuestionType
+  onChange: (v: QuestionType) => void
+}) {
+  const items: Array<{ id: QuestionType; label: string; hint: string }> = [
+    { id: "multiple_choice", label: "Сонголттой", hint: "А, Б, В, Г сонголтоос сонгоно" },
+    { id: "fill_in", label: "Нөхөх (бичих)", hint: "Сурагч хариултаа өөрөө бичнэ" },
+  ]
+  return (
+    <div className="grid gap-2">
+      <p className="text-sm font-medium">Асуултын төрөл</p>
+      <input type="hidden" name="question_type" value={value} />
+      <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label="Асуултын төрөл">
+        {items.map((it) => (
+          <button
+            key={it.id}
+            type="button"
+            role="radio"
+            aria-checked={value === it.id}
+            onClick={() => onChange(it.id)}
+            className={`rounded-lg border px-3 py-2.5 text-left transition-colors cursor-pointer ${
+              value === it.id ? "border-primary bg-primary/10 ring-1 ring-primary/30" : "hover:bg-muted/60"
+            }`}
+          >
+            <span className="block text-sm font-semibold">{it.label}</span>
+            <span className="block text-xs text-muted-foreground">{it.hint}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function FillInAnswerField({ defaultValue }: { defaultValue?: string | null }) {
+  return (
+    <div className="grid gap-2">
+      <label className="text-sm font-medium" htmlFor="correct_answer">Зөв хариулт</label>
+      <textarea
+        id="correct_answer"
+        name="correct_answer"
+        required
+        rows={3}
+        maxLength={1000}
+        defaultValue={defaultValue ?? ""}
+        className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono"
+        placeholder={"Жишээ: 0.5\n1/2"}
+      />
+      <p className="text-xs text-muted-foreground">
+        Нэг мөрөнд нэг зөв хариулт бичнэ. Хэд хэдэн хэлбэрийг зөвшөөрөх бол мөр нэмнэ (жишээ нь 0.5 ба 1/2).
+        Үсгийн том жижиг, илүү зай ялгагдахгүй. Тоонд 3,5 ба 3.5 адил гэж үзнэ.
+      </p>
+    </div>
+  )
+}
+
+function SectionNoteField({ defaultValue }: { defaultValue?: string | null }) {
+  return (
+    <div className="grid gap-2">
+      <label className="text-sm font-medium" htmlFor="section_note">
+        Хэсгийн тайлбар / заавар (сонголттой)
+      </label>
+      <textarea
+        id="section_note"
+        name="section_note"
+        rows={3}
+        maxLength={2000}
+        defaultValue={defaultValue ?? ""}
+        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        placeholder="Жишээ: Доорх өгүүллийг уншаад 11–15-р асуултуудад хариулна уу."
+      />
+      <p className="text-xs text-muted-foreground">
+        Сурагч энэ хэсгийн асуулт бүр дээр хэсгийн нэрийн хамт харна. Хэсгийн нэр ижил асуултуудад адил бичнэ.
+      </p>
+    </div>
+  )
+}
+
 // ─── Create Question Form ─────────────────────────────────────────────────────
 
 export function CreateQuestionForm({
@@ -244,6 +331,7 @@ export function CreateQuestionForm({
 
   const [optionImages, setOptionImages] = useState<OptionImages>(emptyOptionImages)
   const [optionUploading, setOptionUploading] = useState<OptionUploading>(emptyOptionUploading)
+  const [qType, setQType] = useState<QuestionType>("multiple_choice")
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -303,6 +391,8 @@ export function CreateQuestionForm({
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
       <input type="hidden" name="exam_set_id" value={examSetId} />
 
+      <QuestionTypePicker value={qType} onChange={setQType} />
+
       <div className="grid gap-2">
         <label className="text-sm font-medium">Асуултын текст</label>
         <textarea
@@ -351,6 +441,8 @@ export function CreateQuestionForm({
         </div>
       </div>
 
+      <SectionNoteField />
+
       <div className="grid gap-2">
         <label className="text-sm font-medium">Түвшин</label>
         <select
@@ -364,34 +456,40 @@ export function CreateQuestionForm({
         </select>
       </div>
 
-      <div className="space-y-3">
-        <p className="text-sm font-medium">Хариултын сонголтууд</p>
-        {OPTION_LABELS.map((label) => (
-          <OptionRow
-            key={label}
-            label={label}
-            inputName={`option_${label.toLowerCase()}`}
-            required={label !== "E"}
-            placeholder={`${mongolianOptionLabel[label]} сонголт${label === "E" ? " (заавал биш)" : ""}`}
-            imageUrl={optionImages[label]}
-            uploading={optionUploading[label]}
-            onImageChange={makeOptionUploadHandler(label, setOptionUploading, setOptionImages)}
-            onRemoveImage={() => setOptionImages((prev) => ({ ...prev, [label]: null }))}
-          />
-        ))}
-      </div>
+      {qType === "fill_in" ? (
+        <FillInAnswerField />
+      ) : (
+        <>
+          <div className="space-y-3">
+            <p className="text-sm font-medium">Хариултын сонголтууд</p>
+            {OPTION_LABELS.map((label) => (
+              <OptionRow
+                key={label}
+                label={label}
+                inputName={`option_${label.toLowerCase()}`}
+                required={label !== "E"}
+                placeholder={`${mongolianOptionLabel[label]} сонголт${label === "E" ? " (заавал биш)" : ""}`}
+                imageUrl={optionImages[label]}
+                uploading={optionUploading[label]}
+                onImageChange={makeOptionUploadHandler(label, setOptionUploading, setOptionImages)}
+                onRemoveImage={() => setOptionImages((prev) => ({ ...prev, [label]: null }))}
+              />
+            ))}
+          </div>
 
-      <div className="space-y-2">
-        <p className="text-sm font-medium">Зөв хариулт</p>
-        <div className="flex flex-wrap gap-4">
-          {OPTION_LABELS.map((val) => (
-            <label key={val} className="inline-flex items-center gap-2 text-sm">
-              <input type="radio" name="correct_option" value={val} required />
-              {mongolianOptionLabel[val]}
-            </label>
-          ))}
-        </div>
-      </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Зөв хариулт</p>
+            <div className="flex flex-wrap gap-4">
+              {OPTION_LABELS.map((val) => (
+                <label key={val} className="inline-flex items-center gap-2 text-sm">
+                  <input type="radio" name="correct_option" value={val} required />
+                  {mongolianOptionLabel[val]}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="grid gap-2">
         <label className="text-sm font-medium">Зураг (сонголттой)</label>
@@ -465,6 +563,7 @@ export function QuestionCrudCard({
   const [expandedExplanation, setExpandedExplanation] = useState(false)
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [editType, setEditType] = useState<QuestionType>(question.question_type ?? "multiple_choice")
 
   const sortedOptions = useMemo(() => {
     const order = ["A", "B", "C", "D", "E"]
@@ -540,6 +639,9 @@ export function QuestionCrudCard({
             {question.section_name ? (
               <Badge variant="outline" className="text-xs">{question.section_name}</Badge>
             ) : null}
+            {question.question_type === "fill_in" ? (
+              <Badge variant="outline" className="text-xs">Нөхөх</Badge>
+            ) : null}
             <Badge variant="outline">№ {question.order_index}</Badge>
             <Badge variant="secondary">{question.points ?? 1} оноо</Badge>
             <Badge className={difficultyClass[question.difficulty]}>
@@ -590,6 +692,7 @@ export function QuestionCrudCard({
                 className="space-y-4"
               >
                 <input type="hidden" name="exam_set_id" value={question.exam_set_id} />
+                <QuestionTypePicker value={editType} onChange={setEditType} />
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Асуултын текст</label>
                   <textarea
@@ -649,6 +752,7 @@ export function QuestionCrudCard({
                     />
                   </div>
                 </div>
+                <SectionNoteField defaultValue={question.section_note} />
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Түвшин</label>
                   <select
@@ -661,6 +765,10 @@ export function QuestionCrudCard({
                     <option value="hard">Хүнд</option>
                   </select>
                 </div>
+                {editType === "fill_in" ? (
+                  <FillInAnswerField defaultValue={question.correct_answer} />
+                ) : (
+                <>
                 <div className="space-y-3">
                   <p className="text-sm font-medium">Сонголтууд</p>
                   {OPTION_LABELS.map((label) => (
@@ -695,6 +803,8 @@ export function QuestionCrudCard({
                     ))}
                   </div>
                 </div>
+                </>
+                )}
 
                 <div className="grid gap-2">
                   <label className="text-sm font-medium">Зураг (сонголттой)</label>
@@ -766,8 +876,23 @@ export function QuestionCrudCard({
         />
       )}
 
+      {question.section_note ? (
+        <p className="rounded-md bg-muted/60 px-3 py-2 text-xs text-muted-foreground whitespace-pre-wrap">
+          <span className="font-semibold">Хэсгийн тайлбар: </span>{question.section_note}
+        </p>
+      ) : null}
+
+      {question.question_type === "fill_in" ? (
+        <div className="rounded-md border border-emerald-500 bg-emerald-50 px-3 py-2 text-sm">
+          <span className="font-medium mr-2">Зөв хариулт:</span>
+          <span className="whitespace-pre-wrap">
+            {(question.correct_answer ?? "").split(/\r?\n/).filter(Boolean).join("  /  ") || "—"}
+          </span>
+        </div>
+      ) : null}
+
       <ul className="space-y-2">
-        {sortedOptions.map((option) => (
+        {question.question_type === "fill_in" ? null : sortedOptions.map((option) => (
           <li
             key={option.option_label}
             className={`rounded-md border px-3 py-2 text-sm ${
