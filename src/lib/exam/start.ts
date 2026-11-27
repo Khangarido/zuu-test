@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { redis } from "@/lib/redis"
 import { isFillInCorrect } from "@/lib/exam/grading"
+import { hasClassExamAccess, classOnlyExamIds } from "@/lib/class-access"
 
 export class ExamStartError extends Error {
   code: "NOT_FOUND" | "NO_ACCESS" | "ALREADY_SUBMITTED"
@@ -119,7 +120,9 @@ export async function startOrResumeAttempt(
   if (accessError) throw new Error(accessError.message)
 
   if (!accessRow) {
-    const isFree = typedExamSet.price === 0
+    // A free exam that belongs to a private class is NOT open to everyone.
+    const isFree = typedExamSet.price === 0 &&
+      !(await classOnlyExamIds(getSupabaseAdmin())).includes(examSetId)
     let hasExplicitAccess = false
 
     if (!isFree) {
@@ -135,7 +138,15 @@ export async function startOrResumeAttempt(
       hasExplicitAccess = !!explicitRow
     }
 
-    if (isFree || hasExplicitAccess) {
+    // Access through an active private-class membership (not copied into `access`, so it ends with the membership).
+    let hasClassAccess = false
+    if (!isFree && !hasExplicitAccess) {
+      hasClassAccess = await hasClassExamAccess(getSupabaseAdmin(), userId, examSetId)
+    }
+
+    if (hasClassAccess) {
+      // allowed; nothing to grant
+    } else if (isFree || hasExplicitAccess) {
       const { error: grantError } = await supabase
         .from("access")
         .insert({ user_id: userId, exam_set_id: examSetId })

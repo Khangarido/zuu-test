@@ -1,7 +1,7 @@
 "use client"
 import { useState, useTransition } from "react"
 import { toast } from "sonner"
-import { createClass, updateClass, deleteClass } from "./_actions"
+import { createClass, updateClass, deleteClass, regenerateInvite } from "./_actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -9,11 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog"
-import { Trash2, Pencil, Plus, Globe, Lock, Users, Loader2 } from "lucide-react"
+import { Trash2, Pencil, Plus, Globe, Lock, Users, Loader2, Link2, RefreshCw } from "lucide-react"
 
 type ClassRow = {
   id: string; name: string; slug: string; description: string | null
   is_public: boolean; member_count: number; created_at: string
+  price: number; access_mode: "duration" | "fixed_date"; access_days: number
+  access_end_date: string | null; byl_price_id: number | null; invite_token: string | null
 }
 
 export function AdminClassesClient({ classes: initial }: { classes: ClassRow[] }) {
@@ -30,6 +32,11 @@ export function AdminClassesClient({ classes: initial }: { classes: ClassRow[] }
   const [eName, setEName] = useState("")
   const [eDesc, setEDesc] = useState("")
   const [ePublic, setEPublic] = useState(true)
+  const [ePrice, setEPrice] = useState("0")
+  const [eMode, setEMode] = useState<"duration" | "fixed_date">("duration")
+  const [eDays, setEDays] = useState("30")
+  const [eEnd, setEEnd] = useState("")
+  const [eBylId, setEBylId] = useState("")
 
   function autoSlug(name: string) {
     return name.toLowerCase()
@@ -53,15 +60,25 @@ export function AdminClassesClient({ classes: initial }: { classes: ClassRow[] }
 
   function openEdit(cls: ClassRow) {
     setEditTarget(cls); setEName(cls.name); setEDesc(cls.description ?? ""); setEPublic(cls.is_public)
+    setEPrice(String(cls.price ?? 0)); setEMode(cls.access_mode ?? "duration"); setEDays(String(cls.access_days ?? 30))
+    setEEnd(cls.access_end_date ? cls.access_end_date.slice(0, 10) : ""); setEBylId(cls.byl_price_id ? String(cls.byl_price_id) : "")
   }
 
   function handleEdit() {
     if (!editTarget || !eName.trim()) return
     startTransition(async () => {
-      const res = await updateClass(editTarget.id, { name: eName.trim(), description: eDesc, is_public: ePublic })
+      const res = await updateClass(editTarget.id, {
+        name: eName.trim(), description: eDesc, is_public: ePublic,
+        price: Number(ePrice) || 0, access_mode: eMode, access_days: Number(eDays) || 30,
+        access_end_date: eEnd || null, byl_price_id: eBylId.trim() ? Number(eBylId) : null,
+      })
       if (res?.error) { toast.error(res.error); return }
       toast.success("Шинэчлэгдлээ")
-      setClasses(prev => prev.map(c => c.id === editTarget.id ? { ...c, name: eName, description: eDesc || null, is_public: ePublic } : c))
+      setClasses(prev => prev.map(c => c.id === editTarget.id ? {
+        ...c, name: eName, description: eDesc || null, is_public: ePublic,
+        price: Number(ePrice) || 0, access_mode: eMode, access_days: Number(eDays) || 30,
+        access_end_date: eEnd ? new Date(eEnd).toISOString() : null, byl_price_id: eBylId.trim() ? Number(eBylId) : null,
+      } : c))
       setEditTarget(null)
     })
   }
@@ -114,8 +131,13 @@ export function AdminClassesClient({ classes: initial }: { classes: ClassRow[] }
                 {cls.description && (
                   <p className="text-sm text-muted-foreground line-clamp-2">{cls.description}</p>
                 )}
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Users className="size-3.5" />{cls.member_count ?? 0} гишүүн
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5"><Users className="size-3.5" />{cls.member_count ?? 0} гишүүн</span>
+                  <span className="font-semibold">
+                    {cls.price > 0
+                      ? `${cls.price.toLocaleString("en-US")}₮ · ${cls.access_mode === "fixed_date" && cls.access_end_date ? cls.access_end_date.slice(0, 10) + " хүртэл" : (cls.access_days ?? 30) + " хоног"}`
+                      : "Үнэгүй"}
+                  </span>
                 </div>
                 <div className="flex gap-2 pt-1">
                   <Button size="sm" variant="outline" className="flex-1" onClick={() => openEdit(cls)}>
@@ -168,7 +190,7 @@ export function AdminClassesClient({ classes: initial }: { classes: ClassRow[] }
 
       {/* Edit */}
       <Dialog open={!!editTarget} onOpenChange={o => !o && setEditTarget(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Анги засах</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div>
@@ -182,8 +204,64 @@ export function AdminClassesClient({ classes: initial }: { classes: ClassRow[] }
             <label className="flex items-center gap-2 cursor-pointer">
               <input type="checkbox" checked={ePublic} onChange={e => setEPublic(e.target.checked)}
                 className="size-4 rounded accent-primary" />
-              <span className="text-sm">Нийтийн анги</span>
+              <span className="text-sm">Нийтийн анги (хаалттай бол гишүүн биш хүнд агуулга харагдахгүй)</span>
             </label>
+
+            <div className="rounded-lg border p-3 space-y-3">
+              <p className="text-sm font-semibold">Төлбөр &amp; эрхийн хугацаа</p>
+              <div>
+                <label className="text-xs font-medium mb-1 block">Үнэ (₮) — 0 бол үнэгүй</label>
+                <Input type="number" min={0} value={ePrice} onChange={e => setEPrice(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block">Эрхийн төрөл</label>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant={eMode === "duration" ? "default" : "outline"} onClick={() => setEMode("duration")}>
+                    Хоногоор
+                  </Button>
+                  <Button type="button" size="sm" variant={eMode === "fixed_date" ? "default" : "outline"} onClick={() => setEMode("fixed_date")}>
+                    Тогтсон огноо хүртэл
+                  </Button>
+                </div>
+              </div>
+              {eMode === "duration" ? (
+                <div>
+                  <label className="text-xs font-medium mb-1 block">Нэгдсэн өдрөөс хойш хэдэн хоног</label>
+                  <Input type="number" min={1} value={eDays} onChange={e => setEDays(e.target.value)} />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs font-medium mb-1 block">Бүх гишүүний эрх дуусах огноо (жишээ нь ЭЕШ)</label>
+                  <Input type="date" value={eEnd} onChange={e => setEEnd(e.target.value)} />
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-medium mb-1 block">BYL үнийн ID (byl.mn дээрх энэ үнэтэй тохирох price_id)</label>
+                <Input type="number" value={eBylId} onChange={e => setEBylId(e.target.value)} placeholder="жишээ: 12" />
+                <p className="text-[11px] text-muted-foreground mt-1">Хоосон бол төлбөр хийх боломжгүй (буруу үнээр хураахаас сэргийлнэ).</p>
+              </div>
+            </div>
+
+            {editTarget?.invite_token && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-sm font-semibold flex items-center gap-1.5"><Link2 className="size-3.5" />Урилгын холбоос</p>
+                <p className="text-xs font-mono break-all text-muted-foreground">
+                  {typeof window !== "undefined" ? window.location.origin : ""}/classes/join/{editTarget.invite_token}
+                </p>
+                <Button type="button" size="sm" variant="outline" disabled={pending} onClick={() => {
+                  if (!confirm("Хуучин холбоос ажиллахаа болино. Үргэлжлүүлэх үү?")) return
+                  startTransition(async () => {
+                    const r = await regenerateInvite(editTarget.id)
+                    if (r?.error || !r.token) { toast.error(r?.error ?? "Алдаа"); return }
+                    setClasses(prev => prev.map(c => c.id === editTarget.id ? { ...c, invite_token: r.token! } : c))
+                    setEditTarget({ ...editTarget, invite_token: r.token! })
+                    toast.success("Шинэ холбоос үүслээ")
+                  })
+                }}>
+                  <RefreshCw className="size-3.5 mr-1" />Шинэчлэх
+                </Button>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditTarget(null)}>Болих</Button>

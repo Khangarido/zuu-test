@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { classExamIdsForUser, classOnlyExamIds } from "@/lib/class-access"
 import { AppShell } from "@/components/app-shell"
 import { DashboardClient } from "./dashboard-client"
 import type {
@@ -76,16 +77,40 @@ export default async function DashboardPage({
 
   const submitted = (attempts ?? []).filter((a) => a.status === "submitted")
 
-  const accessIds = (accessRows ?? [])
+  // Exams unlocked by an active private-class membership behave like owned exams.
+  const [classExamIds, classOnlyIds] = await Promise.all([
+    classExamIdsForUser(admin, user.id),
+    classOnlyExamIds(admin),
+  ])
+  const ownedIds = new Set(
+    (accessRows ?? [])
+      .map((r) => (r.exam_set as unknown as { id: string } | null)?.id)
+      .filter((x): x is string => Boolean(x))
+  )
+  const extraIds = classExamIds.filter((id) => !ownedIds.has(id))
+  let classAccessRows: typeof accessRows = []
+  if (extraIds.length > 0) {
+    const { data: extra } = await admin
+      .from("exam_sets")
+      .select("id, title, description, duration_minutes, card_color1, card_color2")
+      .in("id", extraIds)
+      .eq("is_active", true)
+    classAccessRows = (extra ?? []).map((e) => ({ exam_set: e })) as unknown as typeof accessRows
+  }
+  const allAccessRows = [...(accessRows ?? []), ...(classAccessRows ?? [])]
+
+  const accessIds = allAccessRows
     .map((r) => (r.exam_set as unknown as { id: string } | null)?.id)
     .filter((x): x is string => Boolean(x))
+  // class-only exams are never advertised in the public catalog (members see them under "owned")
+  const hiddenIds = Array.from(new Set([...accessIds, ...classOnlyIds]))
 
   let availableQuery = supabase
     .from("exam_sets")
     .select("id, title, description, duration_minutes, price, is_new, is_recommended, card_color1, card_color2")
     .eq("is_active", true)
-  if (accessIds.length > 0) {
-    availableQuery = availableQuery.not("id", "in", `(${accessIds.join(",")})`)
+  if (hiddenIds.length > 0) {
+    availableQuery = availableQuery.not("id", "in", `(${hiddenIds.join(",")})`)
   }
   const { data: available, error: availableError } = await availableQuery
   const availableExamsRaw =
@@ -96,13 +121,13 @@ export default async function DashboardPage({
               .from("exam_sets")
               .select("id, title, description, duration_minutes, price, is_new, is_recommended, card_color1, card_color2")
               .eq("is_active", true)
-            if (accessIds.length > 0) q = q.not("id", "in", `(${accessIds.join(",")})`)
+            if (hiddenIds.length > 0) q = q.not("id", "in", `(${hiddenIds.join(",")})`)
             return q
           })()
         ).data
       : available
 
-  const owned: OwnedExamCard[] = (accessRows ?? [])
+  const owned: OwnedExamCard[] = allAccessRows
     .map((row) => {
       const e = row.exam_set as unknown as {
         id: string

@@ -17,7 +17,7 @@ export default async function AdminClassesPage() {
   const admin = getSupabaseAdmin()
   const { data: classes } = await admin
     .from("classes")
-    .select("id, name, slug, description, is_public, member_count, created_at")
+    .select("id, name, slug, description, is_public, member_count, created_at, price, access_mode, access_days, access_end_date, byl_price_id, invite_token")
     .order("created_at", { ascending: false })
 
   return <AdminClassesClient classes={(classes ?? []) as any} />

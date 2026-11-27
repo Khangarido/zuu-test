@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell"
 import { ClassesClient } from "@/components/classes-client"
 import { BookOpen } from "lucide-react"
 import { attachProfiles } from "@/lib/attach-profiles"
+import { isMembershipActive } from "@/lib/class-access"
 
 export const dynamic = "force-dynamic"
 
@@ -21,35 +22,21 @@ export default async function ClassesPage() {
 
   const admin = getSupabaseAdmin()
 
-  // User's memberships (to know which public classes they joined + get private class IDs)
-  const { data: myMemberships } = await supabase
+  // Active memberships (expired ones don't count)
+  const { data: myMemberships } = await admin
     .from("class_members")
-    .select("class_id, role")
+    .select("class_id, role, expires_at")
     .eq("user_id", user.id)
+  const memberClassIds = (myMemberships ?? []).filter(isMembershipActive).map((m) => m.class_id as string)
 
-  const memberClassIds = (myMemberships ?? []).map((m) => m.class_id as string)
-  const privateClassIds = memberClassIds.filter(Boolean)
-
-  // Public classes
-  const { data: publicRaw0, error: publicErr } = await admin
+  // Every class is listed (private ones show as locked); the contents are gated on the class page
+  const { data: classesRaw0, error: classesErr } = await admin
     .from("classes")
-    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id")
-    .or("is_private.is.null,is_private.eq.false")
+    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id, price, access_mode, access_end_date, access_days")
     .order("member_count", { ascending: false })
-    .limit(60)
-  if (publicErr) console.error("[classes] public query failed:", publicErr.message)
-  const publicRaw = await attachProfiles(admin, publicRaw0 ?? [], "teacher_id")
-
-  // Private classes where user is a member
-  let privateRaw: any[] = []
-  if (privateClassIds.length > 0) {
-    const { data } = await admin
-      .from("classes")
-      .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id")
-      .eq("is_private", true)
-      .in("id", privateClassIds)
-    privateRaw = await attachProfiles(admin, data ?? [], "teacher_id")
-  }
+    .limit(200)
+  if (classesErr) console.error("[classes] list query failed:", classesErr.message)
+  const classesRaw = await attachProfiles(admin, classesRaw0 ?? [], "teacher_id")
 
   function normalise(raw: any[]) {
     return (raw ?? []).map((cls: any) => ({
@@ -60,6 +47,10 @@ export default async function ClassesPage() {
       cover_url: (cls.cover_url as string | null) ?? null,
       member_count: (cls.member_count as number) ?? 0,
       is_private: !!(cls.is_private),
+      price: (cls.price as number | null) ?? 0,
+      access_mode: (cls.access_mode as string | null) ?? "duration",
+      access_end_date: (cls.access_end_date as string | null) ?? null,
+      access_days: (cls.access_days as number | null) ?? null,
       teacher: (() => {
         const t = Array.isArray(cls.profiles) ? cls.profiles[0] : cls.profiles
         return t ? {
@@ -71,8 +62,7 @@ export default async function ClassesPage() {
     }))
   }
 
-  const publicClasses = normalise(publicRaw ?? [])
-  const privateClasses = normalise(privateRaw)
+  const allClasses = normalise(classesRaw)
 
   const role = profile?.role === "admin" || profile?.role === "superadmin" ? "admin" : "student"
 
@@ -98,10 +88,8 @@ export default async function ClassesPage() {
         </div>
 
         <ClassesClient
-          publicClasses={publicClasses}
-          privateClasses={privateClasses}
+          classes={allClasses}
           memberClassIds={memberClassIds}
-          userId={user.id}
         />
       </div>
     </AppShell>

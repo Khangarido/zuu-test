@@ -8,12 +8,13 @@ import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog"
 import {
-  Heart, Trash2, Plus, BookOpen, Clock, Loader2, Users, ImageIcon, X,
+  Heart, Trash2, Plus, BookOpen, Clock, Loader2, Users, ImageIcon, X, Link2, UserPlus,
 } from "lucide-react"
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
@@ -29,12 +30,15 @@ type ClassExam = { id: string; exam_set_id: string; title: string; duration_minu
 type ClassMember = {
   user_id: string; role: string
   full_name: string | null; username: string | null; avatar_url: string | null; rank_tier: string | null
+  expires_at?: string | null
 }
 type ExamSetOption = { id: string; title: string; duration_minutes: number }
 
 type Props = {
   cls: { id: string; name: string; slug: string; is_private: boolean }
   currentUserId: string
+  inviteToken?: string | null
+  membershipExpiresAt?: string | null
   isTeacher: boolean
   isAdmin: boolean
   isMember: boolean
@@ -67,7 +71,7 @@ const TA = "flex w-full rounded-md border border-input bg-background px-3 py-2 t
 /* ── Component ───────────────────────────────────────────────────────────── */
 
 export function ClassDetailClient({
-  cls, currentUserId, isTeacher, isAdmin, isMember,
+  cls, currentUserId, inviteToken, membershipExpiresAt, isTeacher, isAdmin, isMember,
   initialPosts, initialExams, initialMembers,
   myReactionPostIds, reactionCounts,
 }: Props) {
@@ -83,7 +87,45 @@ export function ClassDetailClient({
     }))
   )
   const [exams, setExams] = useState<ClassExam[]>(initialExams)
-  const members = initialMembers
+  const [members, setMembers] = useState(initialMembers)
+  const [addIdentifier, setAddIdentifier] = useState("")
+  const [addingMember, setAddingMember] = useState(false)
+
+  async function copyInvite() {
+    if (!inviteToken) return
+    const url = `${window.location.origin}/classes/join/${inviteToken}`
+    try { await navigator.clipboard.writeText(url); toast.success("Урилгын холбоос хуулагдлаа") }
+    catch { toast.error("Хуулж чадсангүй", { description: url }) }
+  }
+
+  async function addMember() {
+    const identifier = addIdentifier.trim()
+    if (!identifier) return
+    setAddingMember(true)
+    const res = await fetch("/api/classes/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ classId: cls.id, identifier }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setAddingMember(false)
+    if (!res.ok) { toast.error(data.error ?? "Нэмэхэд алдаа гарлаа"); return }
+    toast.success(`${data.name ?? "Сурагч"} нэмэгдлээ`)
+    setAddIdentifier("")
+    window.location.reload()
+  }
+
+  async function removeMember(userId: string) {
+    if (!confirm("Энэ сурагчийг ангиас хасах уу?")) return
+    const res = await fetch("/api/classes/members", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ classId: cls.id, userId }),
+    })
+    if (!res.ok) { toast.error("Хасахад алдаа гарлаа"); return }
+    setMembers(prev => prev.filter(m => m.user_id !== userId))
+    toast.success("Хасагдлаа")
+  }
 
   /* ── Create post dialog ── */
   const [showCreatePost, setShowCreatePost] = useState(false)
@@ -234,6 +276,11 @@ export function ClassDetailClient({
   /* ── Render ───────────────────────────────────────────────────────────── */
   return (
     <>
+      {membershipExpiresAt && (
+        <div className="mb-4 rounded-xl border bg-indigo-50 dark:bg-indigo-950/30 px-4 py-2.5 text-sm">
+          Таны эрх <strong>{new Date(membershipExpiresAt).toISOString().slice(0, 10)}</strong> хүртэл хүчинтэй.
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── Left column: Posts feed ── */}
@@ -383,6 +430,25 @@ export function ClassDetailClient({
                 <Users className="size-4 text-muted-foreground" />Сурагчид
                 <Badge variant="secondary" className="text-xs ml-1">{members.length}</Badge>
               </h2>
+              <div className="rounded-xl border p-2.5 space-y-2 bg-muted/30">
+                {inviteToken && (
+                  <Button size="sm" variant="outline" className="w-full" onClick={copyInvite}>
+                    <Link2 className="size-3.5 mr-1.5" />Урилгын холбоос хуулах
+                  </Button>
+                )}
+                <div className="flex gap-1.5">
+                  <Input
+                    value={addIdentifier}
+                    onChange={e => setAddIdentifier(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && addMember()}
+                    placeholder="Сурагчийн код / нэвтрэх нэр / имэйл"
+                    className="h-8 text-xs"
+                  />
+                  <Button size="sm" className="h-8 px-2.5" onClick={addMember} disabled={addingMember || !addIdentifier.trim()}>
+                    {addingMember ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                  </Button>
+                </div>
+              </div>
               {members.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-2">Гишүүн байхгүй</p>
               ) : members.map(m => {
@@ -403,7 +469,18 @@ export function ClassDetailClient({
                     </div>
                     {m.role === "teacher"
                       ? <Badge className="text-[10px] px-1.5 py-0 bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border-0 shrink-0">Багш</Badge>
-                      : null}
+                      : (
+                        <div className="flex items-center gap-1 shrink-0">
+                          {m.expires_at && (
+                            <span className={`text-[10px] ${new Date(m.expires_at) < new Date() ? "text-red-500" : "text-muted-foreground"}`}>
+                              {new Date(m.expires_at).toISOString().slice(0, 10)}
+                            </span>
+                          )}
+                          <button onClick={() => removeMember(m.user_id)} className="text-muted-foreground hover:text-destructive cursor-pointer" aria-label="Хасах">
+                            <X className="size-3.5" />
+                          </button>
+                        </div>
+                      )}
                   </div>
                 )
               })}

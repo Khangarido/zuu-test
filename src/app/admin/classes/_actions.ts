@@ -30,17 +30,39 @@ export async function createClass(data: {
 
 export async function updateClass(id: string, data: {
   name: string; description: string; is_public: boolean
+  price: number; access_mode: "duration" | "fixed_date"; access_days: number
+  access_end_date: string | null; byl_price_id: number | null
 }) {
   await requireAdmin()
+  if (!Number.isFinite(data.price) || data.price < 0) return { error: "Үнэ буруу байна" }
+  if (data.access_mode === "fixed_date" && !data.access_end_date) return { error: "Дуусах огноог оруулна уу" }
+  if (data.access_mode === "duration" && (!Number.isInteger(data.access_days) || data.access_days < 1)) {
+    return { error: "Хоногийн тоо буруу байна" }
+  }
   const admin = getSupabaseAdmin()
   const { error } = await admin.from("classes").update({
     name: data.name, description: data.description || null,
     is_public: data.is_public, is_private: !data.is_public,
+    price: Math.round(data.price),
+    access_mode: data.access_mode,
+    access_days: data.access_days,
+    access_end_date: data.access_mode === "fixed_date" && data.access_end_date
+      ? new Date(data.access_end_date).toISOString() : null,
+    byl_price_id: data.byl_price_id,
   }).eq("id", id)
   if (error) return { error: error.message }
   revalidatePath("/admin/classes")
   revalidatePath("/classes")
   return { success: true }
+}
+
+export async function regenerateInvite(id: string) {
+  await requireAdmin()
+  const admin = getSupabaseAdmin()
+  const token = crypto.randomUUID().replace(/-/g, "")
+  const { error } = await admin.from("classes").update({ invite_token: token }).eq("id", id)
+  if (error) return { error: error.message }
+  return { success: true, token }
 }
 
 export async function deleteClass(id: string) {

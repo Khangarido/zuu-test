@@ -89,7 +89,9 @@ export default function LoginPage() {
     toast.success("Тавтай морил!");
     setRedirecting(true);
     await new Promise(r => setTimeout(r, 80));
-    router.push("/dashboard");
+    const nextParam = new URLSearchParams(window.location.search).get("next");
+    const dest = nextParam && nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/dashboard";
+    router.push(dest);
     router.refresh();
   }
 
