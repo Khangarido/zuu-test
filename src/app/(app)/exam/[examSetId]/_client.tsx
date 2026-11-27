@@ -67,6 +67,7 @@ export function ExamClient({
   const autoSubmittingRef = useRef(false)
   const fillInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timerWasPositiveRef = useRef(false)
+  const leavingRef = useRef(false) // set once the exam is submitted: our own navigation must not trigger the browser prompt
 
   const localTimeAtLoad = useRef(Date.now())
   const serverTimeAtLoad = useRef(new Date(serverTime).getTime())
@@ -91,6 +92,7 @@ export function ExamClient({
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (leavingRef.current) return
       event.preventDefault()
       event.returnValue = "Шалгалт өгөдөж байна. Гарвал даалгавар алдагдана."
     }
@@ -151,7 +153,14 @@ export function ExamClient({
       autoSubmittingRef.current = false
       return
     }
-    router.replace(`/results/${data.attempt_id ?? attempt.id}`)
+    const resultsUrl = `/results/${data.attempt_id ?? attempt.id}`
+    // The "leave this page?" prompt must not fire for our own navigation
+    leavingRef.current = true
+    router.replace(resultsUrl)
+    // Safety net: if the client-side navigation has not happened, do a full page load
+    window.setTimeout(() => {
+      if (!window.location.pathname.startsWith("/results/")) window.location.replace(resultsUrl)
+    }, 3000)
   }
 
   const handleManualSubmit = () => setShowConfirm(true)

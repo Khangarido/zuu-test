@@ -1,13 +1,12 @@
-import Link from "next/link"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { AppShell } from "@/components/app-shell"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { MathText } from "@/components/math-text"
-import { CheckCircle2, XCircle, RotateCcw, ArrowLeft, CheckCheck } from "lucide-react"
+import { CheckCircle2, XCircle, CheckCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ResultsActions } from "./_actions"
 import { formatAcceptedAnswers, isFillInCorrect } from "@/lib/exam/grading"
 
 type AnswerOption = {
@@ -224,22 +223,7 @@ export default async function ResultsPage({
             <h1 className="text-2xl font-bold tracking-tight">Шалгалтын үр дүн</h1>
             <p className="text-muted-foreground mt-0.5">{examSet?.title}</p>
           </div>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild className="cursor-pointer">
-              <Link href="/dashboard">
-                <ArrowLeft className="size-4" />
-                Буцах
-              </Link>
-            </Button>
-            {examSet?.id && (
-              <Button size="sm" asChild className="cursor-pointer">
-                <Link href={`/exam/${examSet.id}?retake=1`}>
-                  <RotateCcw className="size-4" />
-                  Дахин өгөх
-                </Link>
-              </Button>
-            )}
-          </div>
+          <ResultsActions examSetId={examSet?.id ?? null} />
         </div>
 
         {/* Score card */}
