@@ -16,6 +16,7 @@ type ImportQuestion = {
   difficulty: "easy" | "medium" | "hard"
   topic_name: string
   section_name: string
+  section_note?: string
   explanation: string
 }
 
@@ -80,6 +81,7 @@ export async function bulkImportParsed(
     difficulty: q.difficulty,
     order_index: i + 1,
     section_name: q.section_name?.trim() || null,
+    section_note: q.section_note?.trim() || null,
     question_type: q.question_type ?? "multiple_choice",
     correct_answer: q.question_type === "fill_in" ? (q.correct_answer?.trim() || null) : null,
     explanation: q.explanation?.trim() || null,
@@ -142,6 +144,7 @@ export async function bulkImportQuestions(
     difficulty: q.difficulty,
     order_index: i + 1,
     section_name: q.section_name?.trim() || null,
+    section_note: q.section_note?.trim() || null,
     question_type: q.question_type ?? "multiple_choice",
     correct_answer: q.question_type === "fill_in" ? (q.correct_answer?.trim() || null) : null,
     explanation: q.explanation ?? null,

@@ -25,6 +25,7 @@ type ReviewQuestion = {
   difficulty: "easy" | "medium" | "hard"
   topic_name: string
   section_name: string
+  section_note: string
   explanation: string
 }
 
@@ -88,6 +89,7 @@ function QuestionCard({
             >
               {q.difficulty === "easy" ? "Хялбар" : q.difficulty === "hard" ? "Хүнд" : "Дунд"}
             </Badge>
+            {q.question_type === "fill_in" && <Badge className="text-xs bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300">Задгай / нөхөх</Badge>}
             {q.section_name && <Badge variant="outline" className="text-xs">{q.section_name}</Badge>}
             {q.topic_name && <Badge variant="secondary" className="text-xs">{q.topic_name}</Badge>}
           </div>
@@ -114,8 +116,8 @@ function QuestionCard({
         <div className="px-4 pb-4 pl-11 space-y-1">
           {q.question_type === "fill_in" ? (
             <div className="rounded border border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-1 text-sm flex items-center gap-2">
-              <span className="text-muted-foreground shrink-0">Зөв хариулт:</span>
-              <span className="font-medium">{q.correct_answer || "—"}</span>
+              <span className="text-muted-foreground shrink-0">Зөв хариулт (нөхөх):</span>
+              <span className="font-medium">{q.correct_answer.split("\n").filter(Boolean).join("  /  ") || "—"}</span>
               <CheckCircle2 className="ml-auto size-4 text-emerald-600 shrink-0" />
             </div>
           ) : (
@@ -152,14 +154,24 @@ function QuestionCard({
             />
           </div>
 
+          <div className="flex gap-2">
+            <Button type="button" size="sm" variant={q.question_type === "multiple_choice" ? "default" : "outline"}
+              onClick={() => onChange({ ...q, question_type: "multiple_choice" })}>Сонголттой</Button>
+            <Button type="button" size="sm" variant={q.question_type === "fill_in" ? "default" : "outline"}
+              onClick={() => onChange({ ...q, question_type: "fill_in" })}>Задгай (нөхөх)</Button>
+          </div>
+
           {q.question_type === "fill_in" ? (
             <div className="grid gap-1">
-              <label className="text-xs font-medium text-muted-foreground">Зөв хариулт (бичгийн)</label>
-              <Input
+              <label className="text-xs font-medium text-muted-foreground">
+                Зөв хариулт — нэг мөрөнд нэг хариулт (олон хувилбар зөвшөөрч болно)
+              </label>
+              <textarea
+                rows={2}
                 value={q.correct_answer}
                 onChange={(e) => onChange({ ...q, correct_answer: e.target.value })}
-                placeholder="Зөв хариулт..."
-                className="text-sm font-mono"
+                placeholder={"25\n25.0"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono"
               />
             </div>
           ) : (
@@ -243,11 +255,15 @@ function QuestionCard({
 function SectionDivider({
   name,
   count,
+  note,
   onRename,
+  onNote,
 }: {
   name: string
   count: number
+  note: string
   onRename: (newName: string) => void
+  onNote: (newNote: string) => void
 }) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState(name)
@@ -282,6 +298,13 @@ function SectionDivider({
         </button>
       )}
       <div className="h-px flex-1 bg-border" />
+      <Input
+        value={note}
+        onChange={(e) => onNote(e.target.value)}
+        placeholder="Хэсгийн тайлбар (сурагчдад харагдана)"
+        className="h-7 text-xs w-64 shrink-0"
+        title="Энэ хэсгийн дээр сурагчдад харагдах тайлбар"
+      />
     </div>
   )
 }
@@ -313,6 +336,7 @@ export function BulkImportClient({ examSetId }: { examSetId: string }) {
       difficulty: q.difficulty,
       topic_name: q.topic_name ?? "",
       section_name: q.section_name ?? "",
+      section_note: q.section_note ?? "",
       explanation: q.explanation ?? "",
     }))
     setQuestions(reviewed)
@@ -353,8 +377,28 @@ export function BulkImportClient({ examSetId }: { examSetId: string }) {
     )
   }
 
+  const setSectionNote = (sectionName: string, note: string) => {
+    setQuestions((prev) =>
+      prev.map((q) => (q.section_name === sectionName ? { ...q, section_note: note } : q))
+    )
+  }
+
   // ── Import ──
   const handleImport = () => {
+    const problems: string[] = []
+    questions.forEach((q, i) => {
+      if (q.question_type === "fill_in") {
+        if (!q.correct_answer.trim()) problems.push(`#${i + 1}: зөв хариулт хоосон`)
+      } else {
+        const filled = ALL_LABELS.filter((l) => q.options[l].trim())
+        if (filled.length < 2) problems.push(`#${i + 1}: хамгийн багадаа 2 сонголт хэрэгтэй`)
+        else if (!q.options[q.correct].trim()) problems.push(`#${i + 1}: зөв сонголтын текст хоосон`)
+      }
+    })
+    if (problems.length > 0) {
+      toast.error("Импортлохоос өмнө засна уу", { description: problems.slice(0, 4).join("; ") })
+      return
+    }
     startTransition(async () => {
       try {
         const response = await bulkImportParsed(examSetId, JSON.stringify(questions), topicMatching)
@@ -435,7 +479,9 @@ export function BulkImportClient({ examSetId }: { examSetId: string }) {
               <SectionDivider
                 name={group.section}
                 count={group.indices.length}
+                note={questions[group.indices[0]]?.section_note ?? ""}
                 onRename={(newName) => renameSection(group.section, newName)}
+                onNote={(n) => setSectionNote(group.section, n)}
               />
               <div className="space-y-2">
                 {group.indices.map((qi) => {
@@ -478,15 +524,16 @@ export function BulkImportClient({ examSetId }: { examSetId: string }) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="text-sm text-muted-foreground space-y-1">
-          <p>Хэсэг тусгаарлахдаа <code className="bg-muted px-1 rounded"># Хэсэг 1 — нэр</code> гэж бичнэ.</p>
-          <p>Хариулт нь <code className="bg-muted px-1 rounded">ANSWER: D</code> эсвэл <code className="bg-muted px-1 rounded">ANSWER: Г</code> хоёулаа дэмжинэ.</p>
+          <p>Хэсэг: <code className="bg-muted px-1 rounded"># Хэсэг 2 — нэр</code>, хэсгийн тайлбар: <code className="bg-muted px-1 rounded">NOTE: ...</code></p>
+          <p>Сонголттой: <code className="bg-muted px-1 rounded">ANSWER: D</code> эсвэл <code className="bg-muted px-1 rounded">ANSWER: Г</code></p>
+          <p>Задгай (нөхөх): сонголтгүй бичээд <code className="bg-muted px-1 rounded">ANSWER: 25</code> — эсвэл <code className="bg-muted px-1 rounded">TYPE: FILL</code>. Олон хариулт зөвшөөрөх бол <code className="bg-muted px-1 rounded">ANSWER:</code> мөрийг давтана.</p>
         </div>
         <textarea
           rows={22}
           value={raw}
           onChange={(e) => setRaw(e.target.value)}
           className="w-full rounded-md border bg-background px-3 py-2 text-sm font-mono"
-          placeholder="# Хэсэг 1 — Олон сонголт&#10;Q: Асуулт...&#10;A. ...&#10;B. ...&#10;ANSWER: B&#10;---"
+          placeholder="# Хэсэг 1 — Олон сонголт&#10;NOTE: Нэг зөв хариулт сонгоно уу.&#10;Q: Асуулт...&#10;A. ...&#10;B. ...&#10;ANSWER: B&#10;---&#10;# Хэсэг 2 — Задгай&#10;Q: 5*5=?&#10;ANSWER: 25"
         />
         <Button type="button" onClick={handleParse} disabled={!raw.trim()}>
           Задлан шалгах →
