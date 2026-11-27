@@ -7,7 +7,9 @@ type SearchParams = {
   exam_set_id?: string
 }
 
-const sampleFormat = `Q: Дараах илэрхийллийн утгыг олно уу.
+const sampleFormat = `# Хэсэг 1 — Сонголттой асуулт
+NOTE: Нэг зөв хариултыг сонгоно уу.
+Q: Дараах илэрхийллийн утгыг олно уу.
 A) 10
 B) 12
 C) 14
@@ -17,12 +19,16 @@ EXPLANATION: Зөв бодолт нь ... (олон мөр байж болно)
 DIFFICULTY: medium
 TOPIC: Алгебр
 ---
-Q: Дараагийн асуулт...
-A) ...
-B) ...
-C) ...
-D) ...
-ANSWER: A
+# Хэсэг 2 — Задгай (нөхөх) асуулт
+NOTE: Хариултаа тоогоор бичнэ үү.
+Q: 5 × 5 = ?
+ANSWER: 25
+---
+Q: Монгол улсын нийслэл хот аль вэ?
+TYPE: FILL
+ANSWER: Улаанбаатар
+ANSWER: УБ
+EXPLANATION: Нийслэл хотыг товчилж УБ гэж бичиж болно.
 DIFFICULTY: easy`
 
 function joinedName(joined: { name: string } | { name: string }[] | null) {
@@ -71,6 +77,13 @@ export default async function QuestionsImportPage({
           <pre className="overflow-x-auto rounded-md border bg-muted/30 p-3 text-sm font-mono">
             {sampleFormat}
           </pre>
+          <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
+            <li><b>Сонголттой:</b> A) B) C) D) (E заавал биш) + <code>ANSWER: C</code> (Латин эсвэл Кирилл үсэг).</li>
+            <li><b>Задгай (нөхөх):</b> сонголт бичихгүй, зөвхөн <code>ANSWER: 25</code>. Тодорхой заахыг хүсвэл <code>TYPE: FILL</code> (эсвэл <code>TYPE: Задгай</code>); сонголттойг <code>TYPE: TEST</code>.</li>
+            <li><b>Олон зөв хариулт:</b> <code>ANSWER:</code> мөрийг давтана. Том/жижиг үсэг, илүү зай, тоон тэнцүү утга (<code>0.5</code> = <code>.5</code>) өөрөө таарна.</li>
+            <li><b>Хэсэг:</b> <code># Хэсэг 2 — Нэр</code> мөр. <b>Хэсгийн тайлбар:</b> түүний доор <code>NOTE: ...</code> — тухайн хэсэг дуустал сурагчдад харагдана.</li>
+            <li>Асуултуудыг <code>---</code> эсвэл дугаарлалтаар (<code>1.</code>) таслана. Хариулт байхгүй нөхөх асуулт алдаа гэж тэмдэглэгдэнэ.</li>
+          </ul>
           <p className="text-sm text-muted-foreground">
             Боломжит TOPIC утгууд: {topicListText || "Сэдэв алга"}
           </p>

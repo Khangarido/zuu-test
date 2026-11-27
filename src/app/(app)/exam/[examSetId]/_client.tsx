@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +31,8 @@ type Question = {
   question_text: string
   image_url: string | null
   question_type: "multiple_choice" | "fill_in"
+  section_name: string | null
+  section_note: string | null
   order_index: number
   answer_options: Option[]
 }
@@ -65,6 +67,7 @@ export function ExamClient({
   const autoSubmittingRef = useRef(false)
   const fillInTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const timerWasPositiveRef = useRef(false)
+  const leavingRef = useRef(false) // set once the exam is submitted: our own navigation must not trigger the browser prompt
 
   const localTimeAtLoad = useRef(Date.now())
   const serverTimeAtLoad = useRef(new Date(serverTime).getTime())
@@ -89,6 +92,7 @@ export function ExamClient({
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (leavingRef.current) return
       event.preventDefault()
       event.returnValue = "Шалгалт өгөдөж байна. Гарвал даалгавар алдагдана."
     }
@@ -149,7 +153,14 @@ export function ExamClient({
       autoSubmittingRef.current = false
       return
     }
-    router.replace(`/results/${data.attempt_id ?? attempt.id}`)
+    const resultsUrl = `/results/${data.attempt_id ?? attempt.id}`
+    // The "leave this page?" prompt must not fire for our own navigation
+    leavingRef.current = true
+    router.replace(resultsUrl)
+    // Safety net: if the client-side navigation has not happened, do a full page load
+    window.setTimeout(() => {
+      if (!window.location.pathname.startsWith("/results/")) window.location.replace(resultsUrl)
+    }, 3000)
   }
 
   const handleManualSubmit = () => setShowConfirm(true)
@@ -219,7 +230,16 @@ export function ExamClient({
               {questions.map((question, index) => {
                 const isCurrent = index === currentIndex
                 const isAnswered = Boolean(answers[question.id]?.trim())
+                const startsSection =
+                  Boolean(question.section_name) &&
+                  (index === 0 || questions[index - 1].section_name !== question.section_name)
                 return (
+                  <Fragment key={question.id}>
+                  {startsSection && (
+                    <span className="basis-full pt-1 text-xs font-semibold text-muted-foreground">
+                      {question.section_name}
+                    </span>
+                  )}
                   <button
                     key={question.id}
                     type="button"
@@ -236,6 +256,7 @@ export function ExamClient({
                   >
                     {index + 1}
                   </button>
+                  </Fragment>
                 )
               })}
             </div>
@@ -251,6 +272,22 @@ export function ExamClient({
             </div>
           </CardContent>
         </Card>
+
+        {/* Section banner: name + the admin's note for this part of the test */}
+        {(currentQuestion.section_name || currentQuestion.section_note) && (
+          <Card className="border-primary/30 bg-primary/5" role="note" aria-label="Хэсгийн тайлбар">
+            <CardContent className="space-y-1.5 py-4">
+              {currentQuestion.section_name && (
+                <p className="text-sm font-bold text-primary">{currentQuestion.section_name}</p>
+              )}
+              {currentQuestion.section_note && (
+                <div className="text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                  <MathText text={currentQuestion.section_note} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Question card */}
         <Card className="shadow-sm">

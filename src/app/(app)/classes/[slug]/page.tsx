@@ -1,3 +1,7 @@
+import { attachProfiles } from "@/lib/attach-profiles"
+import { isMembershipActive } from "@/lib/class-access"
+import { formatMNT, describeAccess } from "@/lib/class-format"
+import { PayJoinButton } from "./_pay-join-button"
 import { notFound, redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
@@ -29,23 +33,25 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
 
   const admin = getSupabaseAdmin()
 
-  const { data: cls } = await admin
+  const { data: cls0, error: clsErr } = await admin
     .from("classes")
-    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id, profiles!teacher_id(full_name, username, avatar_url)")
+    .select("id, slug, name, description, cover_url, member_count, is_private, teacher_id, price, access_mode, access_end_date, access_days, invite_token")
     .eq("slug", slug)
     .maybeSingle()
 
-  if (!cls) notFound()
+  if (clsErr) console.error("[class] query failed:", clsErr.message)
+  if (!cls0) notFound()
+  const [cls] = await attachProfiles(admin, [cls0], "teacher_id")
 
   // Determine membership and roles
-  const { data: membership } = await supabase
+  const { data: membership0 } = await admin
     .from("class_members")
-    .select("role")
+    .select("role, expires_at")
     .eq("class_id", cls.id)
     .eq("user_id", user.id)
     .maybeSingle()
-
-  const memberRole = membership?.role ?? null
+  const expired = !!membership0 && !isMembershipActive(membership0)
+  const memberRole = membership0 && !expired ? membership0.role : null
   const isAdminRole = viewer?.role === "admin" || viewer?.role === "superadmin"
   const isTeacher = memberRole === "teacher" || isAdminRole
   const isMember = memberRole !== null || isAdminRole
@@ -54,7 +60,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
   const role = isAdminRole ? "admin" : "student"
 
   // Gate: private class + not a member
-  if ((cls as any).is_private && !isMember) {
+  const paidClass = ((cls as any).price ?? 0) > 0
+  if (((cls as any).is_private || paidClass) && !isMember) {
     return (
       <AppShell
         fullName={fullName}
@@ -71,8 +78,28 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
               <div className="flex items-center justify-center mx-auto size-14 rounded-full bg-muted">
                 <Lock className="size-7 text-muted-foreground" />
               </div>
-              <p className="font-semibold text-base">Энэ анги хувийн байна</p>
-              <p className="text-sm text-muted-foreground">Багшаас урилга хүлээнэ үү.</p>
+              <p className="font-semibold text-base">{cls.name}</p>
+              {cls.description && <p className="text-sm text-muted-foreground">{cls.description as string}</p>}
+              <p className="text-xs text-muted-foreground">
+                Нийтлэл, шалгалт зөвхөн ангийн гишүүдэд харагдана.
+              </p>
+              {expired && (
+                <p className="text-xs font-medium text-amber-600">Таны эрх дууссан байна. Сунгаж болно.</p>
+              )}
+              {paidClass ? (
+                <PayJoinButton
+                  classId={cls.id}
+                  label={`${expired ? "Сунгах" : "Нэгдэх"} · ${formatMNT((cls as any).price)}`}
+                  note={describeAccess(cls as any)}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">Багшаас урилга хүлээнэ үү.</p>
+              )}
+              {paidClass && (
+                <p className="text-[11px] text-muted-foreground">
+                  Эсвэл багшаасаа урилгын холбоос авч, эсвэл багшаар нэмүүлж болно.
+                </p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -81,12 +108,13 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
   }
 
   // Fetch posts
-  const { data: rawPosts } = await admin
+  const { data: rawPosts0 } = await admin
     .from("class_posts")
-    .select("id, title, body, photo_url, created_at, author_id, profiles!author_id(full_name, username, avatar_url)")
+    .select("id, title, body, photo_url, created_at, author_id")
     .eq("class_id", cls.id)
     .order("created_at", { ascending: false })
 
+  const rawPosts = await attachProfiles(admin, rawPosts0 ?? [], "author_id")
   const postIds = (rawPosts ?? []).map((p: any) => p.id as string)
 
   // Reaction counts per post
@@ -111,12 +139,14 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
     .eq("class_id", cls.id)
 
   // Members (only if teacher)
-  const { data: rawMembers } = isTeacher
+  const { data: rawMembers0 } = isTeacher
     ? await admin
         .from("class_members")
-        .select("user_id, role, profiles!user_id(full_name, username, avatar_url, rank_tier)")
+        .select("user_id, role, expires_at")
         .eq("class_id", cls.id)
     : { data: [] }
+
+  const rawMembers = await attachProfiles(admin, (rawMembers0 ?? []) as any[], "user_id", "full_name, username, avatar_url, rank_tier")
 
   // Normalise data
   const initialPosts = (rawPosts ?? []).map((p: any) => ({
@@ -153,6 +183,7 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
       username: (pr?.username as string | null) ?? null,
       avatar_url: (pr?.avatar_url as string | null) ?? null,
       rank_tier: (pr?.rank_tier as string | null) ?? null,
+      expires_at: (m.expires_at as string | null) ?? null,
     }
   })
 
@@ -214,6 +245,8 @@ export default async function ClassDetailPage({ params }: { params: Promise<{ sl
             is_private: !!(cls as any).is_private,
           }}
           currentUserId={user.id}
+          inviteToken={isTeacher ? ((cls as any).invite_token as string | null) : null}
+          membershipExpiresAt={membership0 && memberRole === "student" ? (membership0.expires_at as string | null) : null}
           isTeacher={isTeacher}
           isAdmin={isAdminRole}
           isMember={isMember}

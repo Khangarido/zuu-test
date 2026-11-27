@@ -1,0 +1,17 @@
+# Only when the proxy serving muur.site runs IN DOCKER: attach the gateway to the
+# shared network so the proxy can reach it as supabase-envoy:8000
+# (a container can't reach the host's 127.0.0.1).
+# Enable by appending `:docker-compose.edge.yml` to COMPOSE_FILE in .env.
+services:
+  api-gw:
+    networks:
+      default:
+        aliases:
+          - envoy
+          - kong
+      edge: {}
+
+networks:
+  edge:
+    name: ${EDGE_NETWORK:-proxy_edge}
+    external: true

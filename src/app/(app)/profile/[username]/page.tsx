@@ -72,7 +72,7 @@ export default async function ProfilePage({
   const { data: profile } = await admin
     .from("profiles")
     .select(
-      "id, full_name, first_name, last_name, username, avatar_url, grade, school, subjects, rank_score, rank_tier, bio, is_teacher, display_name, joined_at, exp_points"
+      "id, full_name, first_name, last_name, username, avatar_url, grade, school, subjects, rank_score, rank_tier, bio, is_teacher, display_name, joined_at, exp_points, student_code"
     )
     .eq("username", username)
     .maybeSingle()
@@ -136,6 +136,11 @@ export default async function ProfilePage({
 
               <h1 className="text-2xl font-bold mt-4 leading-tight">{displayName}</h1>
               <p className="text-muted-foreground text-sm">@{profile.username}</p>
+              {isOwnProfile && (profile as any).student_code && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Сурагчийн код: <span className="font-mono font-semibold tracking-widest text-foreground">{(profile as any).student_code}</span>
+                </p>
+              )}
 
               {(school || grade) && (
                 <p className="text-sm text-muted-foreground mt-2">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import crypto from "crypto"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { grantMembership } from "@/lib/class-access"
 
 function verifySignature(payload: string, signature: string, secret: string): boolean {
   if (!signature || !secret) return false
@@ -10,6 +11,12 @@ function verifySignature(payload: string, signature: string, secret: string): bo
   } catch {
     return false
   }
+}
+
+function decodeClassRef(ref: string): { userId: string; classId: string } | null {
+  if (!ref.startsWith("c.")) return null
+  const d = decodeRef(ref.slice(2))
+  return d ? { userId: d.userId, classId: d.examSetId } : null
 }
 
 function decodeRef(ref: string): { userId: string; examSetId: string } | null {
@@ -47,6 +54,34 @@ export async function POST(req: NextRequest) {
 
   if (type === "checkout.completed" || type === "invoice.paid") {
     const ref = (data?.client_reference_id ?? "") as string
+    const classRef = decodeClassRef(ref)
+    if (classRef) {
+      const admin = getSupabaseAdmin()
+      const amount = (data?.amount as number) ?? (data?.total as number) ?? 0
+      const transactionId = String(data?.id ?? "")
+
+      // checkout.completed and invoice.paid can both arrive for one payment: do not extend twice
+      const since = new Date(Date.now() - 10 * 60_000).toISOString()
+      const { data: dup } = await admin.from("payments").select("id")
+        .eq("user_id", classRef.userId).eq("class_id", classRef.classId).gte("created_at", since).limit(1)
+      if (dup && dup.length > 0) return NextResponse.json({ ok: true, duplicate: true })
+
+      const { data: cls } = await admin.from("classes")
+        .select("id, access_mode, access_end_date, access_days").eq("id", classRef.classId).maybeSingle()
+      if (cls) {
+        const g = await grantMembership(admin, cls, classRef.userId, "paid")
+        if (g.error) {
+          console.error("byl webhook: class membership error", g.error)
+          return NextResponse.json({ error: "membership failed" }, { status: 500 })  // BYL retries
+        }
+        const { error: payErr } = await admin.from("payments").insert({
+          user_id: classRef.userId, class_id: classRef.classId, amount, status: "completed", transaction_id: transactionId,
+        })
+        if (payErr) console.error("byl webhook: class payment insert error", payErr)
+      }
+      return NextResponse.json({ ok: true })
+    }
+
     const decoded = decodeRef(ref)
 
     if (decoded) {

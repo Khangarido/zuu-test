@@ -34,6 +34,9 @@ type QuestionRow = {
   points: number
   order_index: number
   section_name: string | null
+  section_note: string | null
+  question_type: "multiple_choice" | "fill_in" | null
+  correct_answer: string | null
   explanation: string | null
   image_url: string | null
   created_at: string
@@ -92,7 +95,7 @@ export default async function QuestionsAdminPage({
     let query = supabase
       .from("questions")
       .select(
-        "id, exam_set_id, topic_id, question_text, difficulty, points, order_index, section_name, explanation, image_url, created_at, topics(name), answer_options(option_label, option_text, is_correct, image_url)"
+        "id, exam_set_id, topic_id, question_text, difficulty, points, order_index, section_name, section_note, question_type, correct_answer, explanation, image_url, created_at, topics(name), answer_options(option_label, option_text, is_correct, image_url)"
       )
       .eq("exam_set_id", selectedExamSetId)
       .order("order_index", { ascending: true })
@@ -236,6 +239,9 @@ export default async function QuestionsAdminPage({
                     question={{
                       ...question,
                       section_name: question.section_name ?? null,
+                      section_note: question.section_note ?? null,
+                      question_type: question.question_type ?? "multiple_choice",
+                      correct_answer: question.correct_answer ?? null,
                       topic_name: getJoinedName(question.topics),
                       image_url: question.image_url ?? null,
                       answer_options: (question.answer_options ?? []) as Array<{

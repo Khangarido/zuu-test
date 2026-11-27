@@ -10,6 +10,7 @@ export type ParsedQuestion = {
   difficulty: "easy" | "medium" | "hard"
   topic_name?: string
   section_name?: string
+  section_note?: string
 }
 
 export type ParseError = {
@@ -41,7 +42,7 @@ function normalizeDifficulty(input: string | undefined): "easy" | "medium" | "ha
 /** Insert newlines before keyword tokens so single-line pastes become multiline. */
 function normalize(raw: string): string {
   const keywords = [
-    "Q:", "ANSWER:", "EXPLANATION:", "DIFFICULTY:", "TOPIC:", "---",
+    "Q:", "ANSWER:", "EXPLANATION:", "DIFFICULTY:", "TOPIC:", "TYPE:", "NOTE:", "---",
     "A)", "B)", "C)", "D)", "E)",
     "A.", "B.", "C.", "D.", "E.",
     "А)", "Б)", "В)", "Г)", "Д)",
@@ -126,14 +127,22 @@ const OPTION_PREFIXES = [
   "A)", "B)", "C)", "D)", "E)", "A.", "B.", "C.", "D.", "E.",
   "А)", "Б)", "В)", "Г)", "Д)", "А.", "Б.", "В.", "Г.", "Д.",
 ]
-const META_PREFIXES = ["ANSWER:", "EXPLANATION:", "DIFFICULTY:", "TOPIC:"]
+const META_PREFIXES = ["ANSWER:", "EXPLANATION:", "DIFFICULTY:", "TOPIC:", "TYPE:", "NOTE:"]
 const ALL_PREFIXES = [...OPTION_PREFIXES, ...META_PREFIXES]
 
 /** True if chunk has no option lines and no ANSWER — it's a preamble/section header. */
 function isPreamble(lines: string[]): boolean {
   return lines
     .filter((l) => l.trim())
-    .every((l) => !parseOptionLine(l) && !l.trimStart().startsWith("ANSWER:"))
+    .every((l) => !parseOptionLine(l) && !l.trimStart().startsWith("ANSWER:") && !l.trimStart().startsWith("TYPE:"))
+}
+
+/** TYPE: value → "fill_in" | "multiple_choice" | null (null = decide automatically). */
+function parseTypeValue(v: string): "fill_in" | "multiple_choice" | null {
+  const t = v.trim().toLowerCase()
+  if (["fill", "fill_in", "fill-in", "fillin", "open", "text", "задгай", "нөхөх", "нөхөх асуулт", "задгай асуулт"].includes(t)) return "fill_in"
+  if (["test", "choice", "mc", "multiple_choice", "multiple-choice", "сонголттой", "тест", "олон сонголт"].includes(t)) return "multiple_choice"
+  return null
 }
 
 /** Extract section name from a # comment line */
@@ -156,6 +165,7 @@ export function parseQuestions(raw: string): {
 
   const chunks = splitIntoChunks(normalize(raw))
   let currentSection = ""
+  let currentNote = ""
 
   for (const { chunk, startLine } of chunks) {
     if (!chunk.trim()) continue
@@ -167,7 +177,11 @@ export function parseQuestions(raw: string): {
     for (let i = 0; i < allLines.length; i++) {
       const sec = parseSectionLine(allLines[i])
       if (sec !== null) {
-        if (sec) currentSection = sec
+        if (sec) { currentSection = sec; currentNote = "" } // a new section starts without the old note
+        chunkStart = i + 1
+      } else if (allLines[i].trimStart().startsWith("NOTE:")) {
+        // section note: shown to students above this section's questions
+        currentNote = allLines[i].trimStart().slice(5).trim()
         chunkStart = i + 1
       } else if (allLines[i].trim()) {
         break
@@ -193,7 +207,8 @@ export function parseQuestions(raw: string): {
     let questionText = ""
     const options: Partial<Record<OptionLabel, string>> = {}
     let correct: OptionLabel | undefined
-    let rawCorrectAnswer = ""
+    const rawAnswers: string[] = []
+    let forcedType: "fill_in" | "multiple_choice" | null = null
     let explanation = ""
     let difficulty: "easy" | "medium" | "hard" = "medium"
     let topicName = ""
@@ -239,11 +254,20 @@ export function parseQuestions(raw: string): {
       if (!line) { idx++; continue }
       if (line.startsWith("ANSWER:")) {
         const v = line.slice(7).trim()
-        // Try exact, then uppercase — if no mapping, store as raw text answer (fill-in)
-        correct = ANSWER_MAP[v] ?? ANSWER_MAP[v.toUpperCase()] ?? ANSWER_MAP[v[0]]
-        rawCorrectAnswer = v
+        // Try exact, then uppercase — if no mapping, it is a text answer (fill-in)
+        if (rawAnswers.length === 0) {
+          correct = ANSWER_MAP[v] ?? ANSWER_MAP[v.toUpperCase()] ?? ANSWER_MAP[v[0]]
+        }
+        // Repeating ANSWER: lines adds more accepted answers for a fill-in question
+        if (v) rawAnswers.push(v)
         idx++; continue
       }
+      if (line.startsWith("TYPE:")) {
+        forcedType = parseTypeValue(line.slice(5))
+        if (forcedType === null) fail(`TYPE: "${line.slice(5).trim()}" таниагдсангүй (FILL эсвэл TEST).`)
+        idx++; continue
+      }
+      if (line.startsWith("NOTE:")) { idx++; continue }
       if (line.startsWith("DIFFICULTY:")) {
         difficulty = normalizeDifficulty(line.slice(11))
         idx++; continue
@@ -270,21 +294,22 @@ export function parseQuestions(raw: string): {
     if (!questionText.trim()) { fail("Асуултын текст хоосон байна."); continue }
 
     const hasAnyOption = options.A || options.B || options.C || options.D || options.E
-    if (!hasAnyOption) {
-      // Fill-in-blank: no options, but has a raw text answer
-      if (rawCorrectAnswer.trim()) {
-        questions.push({
-          question_text: questionText.trim(),
-          options: { A: "", B: "", C: "", D: "", E: "" },
-          correct: "A", // placeholder — not used for fill_in
-          question_type: "fill_in",
-          correct_answer: rawCorrectAnswer.trim(),
-          explanation: explanation.trim() || undefined,
-          difficulty,
-          topic_name: topicName.trim() || undefined,
-          section_name: currentSection || undefined,
-        })
-      }
+    const isFillIn = forcedType === "fill_in" || (forcedType === null && !hasAnyOption)
+    if (isFillIn) {
+      const accepted = rawAnswers.join("\n")
+      if (!accepted.trim()) { fail("Нөхөх асуултад ANSWER: заавал байна."); continue }
+      questions.push({
+        question_text: questionText.trim(),
+        options: { A: "", B: "", C: "", D: "", E: "" },
+        correct: "A", // placeholder — not used for fill_in
+        question_type: "fill_in",
+        correct_answer: accepted, // one accepted answer per line
+        explanation: explanation.trim() || undefined,
+        difficulty,
+        topic_name: topicName.trim() || undefined,
+        section_name: currentSection || undefined,
+        section_note: currentNote || undefined,
+      })
       continue
     }
 
@@ -308,6 +333,7 @@ export function parseQuestions(raw: string): {
       difficulty,
       topic_name: topicName.trim() || undefined,
       section_name: currentSection || undefined,
+      section_note: currentNote || undefined,
     })
   }
 

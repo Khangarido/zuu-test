@@ -1,0 +1,59 @@
+# zuutest.site — ADDITIONAL site blocks for an existing Caddy that already serves
+# muur.site. Do NOT replace your Caddyfile and do NOT add global options here.
+#
+# Install (host Caddy):
+#   1. Append this file to your Caddyfile, or save it as e.g. /etc/caddy/zuutest.caddy
+#      and add `import /etc/caddy/zuutest.caddy` at the end of the main Caddyfile.
+#   2. caddy validate --config /etc/caddy/Caddyfile        # must say "Valid configuration"
+#   3. systemctl reload caddy                              # graceful, muur.site keeps serving
+#
+# Caddy in Docker: same file, but replace the upstreams (see "DOCKER PROXY" below),
+# then: docker exec <caddy-container> caddy validate --config /etc/caddy/Caddyfile
+#       docker exec <caddy-container> caddy reload   --config /etc/caddy/Caddyfile
+#
+# TLS: automatic (Let's Encrypt). Each hostname's DNS A record must already point
+# at this VPS or issuance fails. Ports 80/443 stay owned by your existing Caddy.
+#
+# Upstream ports match deploy/.env APP_PORT (3100) and supabase .env API_GW_HTTP_PORT (8100).
+#
+# DOCKER PROXY: containers can't reach the host's 127.0.0.1. Join the proxy to the
+# shared network (deploy/docker-compose.app.edge.yml, deploy/supabase/docker-compose.edge.yml)
+# and use  zuu-app:3000  and  supabase-envoy:8000  instead of the 127.0.0.1 upstreams.
+
+(zuu_app) {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3100 {
+		# Don't buffer streamed/Suspense responses (Next.js self-hosting guide).
+		flush_interval -1
+	}
+}
+
+# ── Staging / rehearsal host (safe to leave running). Remove after cutover. ───
+next.zuutest.site {
+	import zuu_app
+}
+
+# ── Supabase API host. Public surface limited to the four endpoints the app uses.
+# Studio, pg-meta, functions and the Envoy admin never leave the server; reach
+# Studio over an SSH tunnel (deploy/supabase/README.md).
+supabase.zuutest.site {
+	@supabase path /auth/v1/* /rest/v1/* /realtime/v1/* /storage/v1/*
+	handle @supabase {
+		# Storage uploads are capped at 50 MB by Supabase (FILE_SIZE_LIMIT).
+		request_body {
+			max_size 55MB
+		}
+		# Realtime uses WebSockets; Caddy proxies the Upgrade automatically.
+		reverse_proxy 127.0.0.1:8100 {
+			flush_interval -1
+		}
+	}
+	handle {
+		respond "Not found" 404
+	}
+}
+
+# ── PRODUCTION: uncomment at cutover, AFTER the A records point at this VPS. ──
+# zuutest.site, www.zuutest.site {
+# 	import zuu_app
+# }

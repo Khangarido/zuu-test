@@ -80,6 +80,7 @@ export default function NewClassPage() {
         cover_url:   coverUrl,
         teacher_id:  user.id,
         is_public:   true,
+        is_private:  false,
       })
       .select("id, slug")
       .single()
@@ -91,11 +92,14 @@ export default function NewClassPage() {
     }
 
     // Add teacher as member
-    await supabase.from("class_members").insert({
+    const { error: memErr } = await supabase.from("class_members").insert({
       class_id: cls.id,
       user_id:  user.id,
       role:     "teacher",
     })
+    if (memErr) {
+      toast.error("Анги үүссэн ч багшаар нэмэгдсэнгүй", { description: memErr.message })
+    }
 
     toast.success("Анги амжилттай үүслээ!")
     router.push(`/classes/${cls.slug}`)

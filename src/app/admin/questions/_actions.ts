@@ -7,6 +7,7 @@ import { getSupabaseAdmin } from "@/lib/supabase/admin"
 
 const difficultySchema = z.enum(["easy", "medium", "hard"])
 const optionLabelSchema = z.enum(["A", "B", "C", "D", "E"])
+const questionTypeSchema = z.enum(["multiple_choice", "fill_in"])
 
 const questionSchema = z.object({
   exam_set_id: z.string().uuid("Шалгалтын багц буруу байна."),
@@ -16,12 +17,17 @@ const questionSchema = z.object({
   points: z.number().int().min(1).max(20).default(1),
   order_index: z.number().int(),
   section_name: z.string().trim().max(100).optional(),
-  option_a: z.string().trim().min(1).max(500),
-  option_b: z.string().trim().min(1).max(500),
-  option_c: z.string().trim().min(1).max(500),
-  option_d: z.string().trim().min(1).max(500),
+  section_note: z.string().trim().max(2000).optional(),
+  question_type: questionTypeSchema.default("multiple_choice"),
+  // multiple choice only (checked in parseQuestionForm)
+  option_a: z.string().trim().max(500).optional(),
+  option_b: z.string().trim().max(500).optional(),
+  option_c: z.string().trim().max(500).optional(),
+  option_d: z.string().trim().max(500).optional(),
   option_e: z.string().trim().max(500).optional(),
-  correct_option: optionLabelSchema,
+  correct_option: optionLabelSchema.optional(),
+  // fill-in only: one accepted answer per line
+  correct_answer: z.string().trim().max(1000).optional(),
   explanation: z.string().trim().max(2000).optional(),
 })
 
@@ -63,17 +69,30 @@ async function parseQuestionForm(
     points: parseNumber(formData.get("points")) || 1,
     order_index: parseNumber(formData.get("order_index")),
     section_name: normalizeOptional(formData.get("section_name")),
-    option_a: formData.get("option_a"),
-    option_b: formData.get("option_b"),
-    option_c: formData.get("option_c"),
-    option_d: formData.get("option_d"),
+    section_note: normalizeOptional(formData.get("section_note")),
+    question_type: normalizeOptional(formData.get("question_type")) ?? "multiple_choice",
+    option_a: normalizeOptional(formData.get("option_a")),
+    option_b: normalizeOptional(formData.get("option_b")),
+    option_c: normalizeOptional(formData.get("option_c")),
+    option_d: normalizeOptional(formData.get("option_d")),
     option_e: normalizeOptional(formData.get("option_e")),
-    correct_option: formData.get("correct_option"),
+    correct_option: normalizeOptional(formData.get("correct_option")),
+    correct_answer: normalizeOptional(formData.get("correct_answer")),
     explanation: normalizeOptional(formData.get("explanation")),
   })
   if (!parsed.success) throw new Error(parsed.error.issues[0]?.message ?? "Асуултын мэдээлэл буруу байна.")
 
   const data = parsed.data
+  if (data.question_type === "fill_in") {
+    const lines = (data.correct_answer ?? "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
+    if (lines.length === 0) throw new Error("Нөхөх асуултын зөв хариултыг бичнэ үү.")
+    data.correct_answer = lines.join("\n")
+  } else {
+    if (!data.option_a || !data.option_b || !data.option_c || !data.option_d) {
+      throw new Error("А, Б, В, Г сонголтыг бөглөнө үү.")
+    }
+    if (!data.correct_option) throw new Error("Зөв хариултыг сонгоно уу.")
+  }
   let subjectId: string | null = null
   if (data.topic_id) {
     const { data: topic, error: topicError } = await supabase.from("topics").select("subject_id").eq("id", data.topic_id).maybeSingle()
@@ -110,6 +129,9 @@ export async function createQuestion(formData: FormData) {
       points: payload.points,
       order_index: payload.order_index,
       section_name: payload.section_name ?? null,
+      section_note: payload.section_note ?? null,
+      question_type: payload.question_type,
+      correct_answer: payload.question_type === "fill_in" ? payload.correct_answer ?? null : null,
       explanation: payload.explanation ?? null,
       image_url: imageUrl,
     })
@@ -117,6 +139,11 @@ export async function createQuestion(formData: FormData) {
     .single()
 
   if (questionError || !insertedQuestion) throw new Error(questionError?.message ?? "Асуулт үүсгэх үед алдаа гарлаа.")
+
+  if (payload.question_type === "fill_in") {
+    revalidatePath("/admin/questions")
+    return
+  }
 
   const optionsPayload = [
     { question_id: insertedQuestion.id, option_label: "A", option_text: payload.option_a, is_correct: payload.correct_option === "A", image_url: optionImageUrls["A"] },
@@ -155,6 +182,9 @@ export async function updateQuestion(id: string, formData: FormData) {
       points: payload.points,
       order_index: payload.order_index,
       section_name: payload.section_name ?? null,
+      section_note: payload.section_note ?? null,
+      question_type: payload.question_type,
+      correct_answer: payload.question_type === "fill_in" ? payload.correct_answer ?? null : null,
       explanation: payload.explanation ?? null,
       image_url: imageUrl,
     })
@@ -164,6 +194,11 @@ export async function updateQuestion(id: string, formData: FormData) {
 
   const { error: deleteError } = await supabase.from("answer_options").delete().eq("question_id", id)
   if (deleteError) throw new Error(deleteError.message)
+
+  if (payload.question_type === "fill_in") {
+    revalidatePath("/admin/questions")
+    return
+  }
 
   const optionsPayload = [
     { question_id: id, option_label: "A", option_text: payload.option_a, is_correct: payload.correct_option === "A", image_url: optionImageUrls["A"] },

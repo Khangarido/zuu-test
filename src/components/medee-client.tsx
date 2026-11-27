@@ -220,11 +220,12 @@ export function MedeeFeed({
     const body = editBody.trim()
     if (!title || !body) return
     setEditingPost(true)
-    const { error } = await supabase.from("medee_posts")
+    const { data, error } = await supabase.from("medee_posts")
       .update({ title, body, link_url: editLinkUrl.trim() || null, updated_at: new Date().toISOString() })
       .eq("id", postId)
+      .select("id")
     setEditingPost(false)
-    if (error) { toast.error("Засах боломжгүй байна"); return }
+    if (error || !data?.length) { toast.error("Засах боломжгүй байна"); return }
     setPosts(prev => prev.map(p =>
       p.id === postId ? { ...p, title, body, link_url: editLinkUrl.trim() || null } : p
     ))
@@ -234,8 +235,8 @@ export function MedeeFeed({
 
   /* ── Delete post ─────────────────────────────────────────────────────── */
   async function handleDeletePost(postId: string) {
-    const { error } = await supabase.from("medee_posts").delete().eq("id", postId)
-    if (error) { toast.error("Устгах боломжгүй байна"); return }
+    const { data, error } = await supabase.from("medee_posts").delete().eq("id", postId).select("id")
+    if (error || !data?.length) { toast.error("Устгах боломжгүй байна"); return }
     setPosts(prev => prev.filter(p => p.id !== postId))
     toast.success("Мэдээ устгагдлаа")
   }
@@ -307,9 +308,9 @@ export function MedeeFeed({
     const body = editCommentBody.trim()
     if (!body) return
     setEditingComment(true)
-    const { error } = await supabase.from("medee_comments").update({ body }).eq("id", commentId)
+    const { data, error } = await supabase.from("medee_comments").update({ body }).eq("id", commentId).select("id")
     setEditingComment(false)
-    if (error) { toast.error("Засах боломжгүй байна"); return }
+    if (error || !data?.length) { toast.error("Засах боломжгүй байна"); return }
     setPostComments(prev => ({
       ...prev,
       [postId]: (prev[postId] ?? []).map(c => c.id === commentId ? { ...c, body } : c),
@@ -318,8 +319,8 @@ export function MedeeFeed({
   }
 
   async function handleDeleteComment(commentId: string, postId: string) {
-    const { error } = await supabase.from("medee_comments").delete().eq("id", commentId)
-    if (error) { toast.error("Устгах боломжгүй байна"); return }
+    const { data, error } = await supabase.from("medee_comments").delete().eq("id", commentId).select("id")
+    if (error || !data?.length) { toast.error("Устгах боломжгүй байна"); return }
     setPostComments(prev => ({ ...prev, [postId]: (prev[postId] ?? []).filter(c => c.id !== commentId) }))
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, comment_count: Math.max(0, p.comment_count - 1) } : p))
   }

@@ -25,8 +25,12 @@ export function JoinLeaveButton({ classId, isMember }: { classId: string; isMemb
       setJoined(false)
       toast.success("Ангиас гарлаа")
     } else {
-      const { error } = await supabase.from("class_members").insert({ class_id: classId, user_id: user.id, role: "student" })
-      if (error) { toast.error("Нэгдэхэд алдаа гарлаа"); setBusy(false); return }
+      const res = await fetch("/api/classes/join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ classId }),
+      })
+      if (!res.ok) { toast.error("Нэгдэхэд алдаа гарлаа"); setBusy(false); return }
       setJoined(true)
       toast.success("Ангид нэгдлээ!")
     }

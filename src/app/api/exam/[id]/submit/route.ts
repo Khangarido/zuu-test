@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { updateRankScore } from "@/lib/ranking"
+import { isFillInCorrect } from "@/lib/exam/grading"
 
 export async function POST(
   _request: NextRequest,
@@ -51,9 +52,7 @@ export async function POST(
     totalPoints += pts
     let isCorrect = false
     if (q.question_type === "fill_in") {
-      const studentAnswer = (textAnswerMap[q.id] ?? "").trim().toLowerCase()
-      const correctAnswer = (q.correct_answer ?? "").trim().toLowerCase()
-      if (studentAnswer && correctAnswer && studentAnswer === correctAnswer) isCorrect = true
+      isCorrect = isFillInCorrect(textAnswerMap[q.id], q.correct_answer)
     } else {
       const opts = Array.isArray(q.answer_options) ? q.answer_options : []
       const correctOpt = (opts as Array<{ id: string; is_correct: boolean }>).find((o) => o.is_correct)

@@ -9,6 +9,8 @@ type QuestionRow = {
   question_text: string
   image_url: string | null
   question_type: string | null
+  section_name: string | null
+  section_note: string | null
   topic_id: string | null
   order_index: number
   created_at: string
@@ -56,7 +58,7 @@ export default async function ExamPage({
   } else {
     const { data: questionRows, error: questionError } = await supabase
       .from("questions")
-      .select("id, question_text, image_url, question_type, topic_id, order_index, created_at, answer_options(id, option_label, option_text, image_url)")
+      .select("id, question_text, image_url, question_type, section_name, section_note, topic_id, order_index, created_at, answer_options(id, option_label, option_text, image_url)")
       .eq("exam_set_id", examSetId)
       .order("order_index", { ascending: true })
       .order("created_at", { ascending: true })
@@ -90,6 +92,8 @@ export default async function ExamPage({
         question_text: q.question_text,
         image_url: q.image_url ?? null,
         question_type: (q.question_type ?? "multiple_choice") as "multiple_choice" | "fill_in",
+        section_name: q.section_name ?? null,
+        section_note: q.section_note ?? null,
         order_index: q.order_index,
         answer_options: (q.answer_options ?? []).map((o) => ({ ...o, image_url: o.image_url ?? null })),
       }))}
