@@ -3,84 +3,108 @@ import { createClient } from "@/lib/supabase/server"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { AppShell } from "@/components/app-shell"
 import { LeaderboardClient } from "./_client"
-import type { ExpStudent } from "./_client"
+import { GRADE_VALUES, SUBJECT_VALUES, outsideRank, shapeRows, type Identity, type RankRow } from "@/lib/leaderboard"
 import { Trophy } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
-export default async function LeaderboardPage() {
+type Search = { grade?: string; subject?: string }
+
+/* eslint-disable @typescript-eslint/no-explicit-any */
+export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<Search> }) {
+  const sp = await searchParams
+  const grade = GRADE_VALUES.includes(sp.grade ?? "") ? (sp.grade as string) : null
+  const subject = SUBJECT_VALUES.includes(sp.subject ?? "") ? (sp.subject as string) : null
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect("/login")
 
   const { data: viewer } = await supabase
     .from("profiles")
-    .select("full_name, role, username, avatar_url")
+    .select("full_name, role, username, avatar_url, grade, subjects, rank_score, exp_points")
     .eq("id", user.id)
     .maybeSingle()
 
-  const admin = getSupabaseAdmin()
-
-  // Top 100 students by rank_score
-  const { data: rows } = await admin
-    .from("profiles")
-    .select("id, full_name, username, avatar_url, grade, subjects, rank_score, rank_tier")
-    .eq("role", "student")
-    .order("rank_score", { ascending: false })
-    .limit(100)
-
-  // Attempt counts per user
-  const userIds = (rows ?? []).map((r) => r.id)
-  const { data: attemptCounts } = await admin
-    .from("attempts")
-    .select("user_id")
-    .in("user_id", userIds)
-    .eq("status", "submitted")
-
-  const countMap: Record<string, number> = {}
-  for (const a of attemptCounts ?? []) {
-    countMap[a.user_id] = (countMap[a.user_id] ?? 0) + 1
+  const viewerRole = viewer?.role === "admin" || viewer?.role === "superadmin" ? "admin" : "student"
+  const isAdminViewer = viewerRole === "admin"
+  const viewerIdentity: Identity = {
+    name: (viewer?.full_name as string | null) ?? null,
+    username: (viewer?.username as string | null) ?? null,
+    avatar_url: (viewer?.avatar_url as string | null) ?? null,
+    grade: (viewer?.grade as string | null) ?? null,
   }
 
-  const students = (rows ?? []).map((r) => ({
-    id: r.id,
-    full_name:  r.full_name  as string | null,
-    username:   r.username   as string | null,
-    avatar_url: r.avatar_url as string | null,
-    grade:      r.grade      as string | null,
-    subjects:   r.subjects   as string[] | null,
-    rank_score: (r.rank_score as number) ?? 0,
-    rank_tier:  (r.rank_tier  as string) ?? "Bronze",
-    attempts:   countMap[r.id] ?? 0,
-  }))
+  const admin = getSupabaseAdmin()
+  const scoped = (q: any) => {
+    let out = q
+    if (grade) out = out.eq("grade", grade)
+    if (subject) out = out.contains("subjects", [subject])
+    return out
+  }
+  const viewerInScope =
+    viewerRole === "student" &&
+    (!grade || viewer?.grade === grade) &&
+    (!subject || ((viewer?.subjects as string[] | null) ?? []).includes(subject))
 
-  // EXP leaderboard — top 50 by exp_points
-  const { data: expRows } = await admin
+  // Students never get other students' names: the query does not even select them.
+  const idCols = isAdminViewer ? ", full_name, username, avatar_url, grade" : ""
+  const toIdentity = (r: any): Identity | undefined =>
+    isAdminViewer
+      ? { name: r.full_name ?? null, username: r.username ?? null, avatar_url: r.avatar_url ?? null, grade: r.grade ?? null }
+      : undefined
+
+  // ── Score ranking: top 100 ───────────────────────────────────────────────
+  const { data: scoreData } = await scoped(
+    admin.from("profiles").select(`id, rank_score, rank_tier${idCols}`).eq("role", "student")
+  ).order("rank_score", { ascending: false }).order("id").limit(100)
+  const scoreRaw = (scoreData ?? []) as any[]
+  const scoreRows: RankRow[] = shapeRows(
+    scoreRaw.map((r) => ({ id: r.id, value: r.rank_score, tier: r.rank_tier, identity: toIdentity(r) })),
+    { viewerId: user.id, viewerIdentity, showIdentity: isAdminViewer }
+  )
+
+  const { count: scoreTotal } = await scoped(
+    admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student")
+  )
+
+  let scoreMe: RankRow | null = null
+  if (viewerInScope && !scoreRows.some((r) => r.me)) {
+    const myScore = (viewer?.rank_score as number | null) ?? 0
+    const { count } = await scoped(
+      admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "student").gt("rank_score", myScore)
+    )
+    scoreMe = { rank: outsideRank(count), value: myScore, tier: null, me: true, identity: viewerIdentity }
+  }
+
+  // ── EXP ranking: top 50 ──────────────────────────────────────────────────
+  const { data: expData } = await admin
     .from("profiles")
-    .select("id, full_name, username, avatar_url, exp_points")
+    .select(`id, exp_points${idCols}`)
     .eq("role", "student")
     .order("exp_points", { ascending: false })
+    .order("id")
     .limit(50)
-
-  const expStudents: ExpStudent[] = (expRows ?? []).map((r) => ({
-    id: r.id as string,
-    full_name: r.full_name as string | null,
-    username: r.username as string | null,
-    avatar_url: r.avatar_url as string | null,
-    exp_points: (r.exp_points as number) ?? 0,
-  }))
-
-  const viewerRole =
-    viewer?.role === "admin" || viewer?.role === "superadmin" ? "admin" : "student"
+  const expRows: RankRow[] = shapeRows(
+    ((expData ?? []) as any[]).map((r) => ({ id: r.id, value: r.exp_points, tier: null, identity: toIdentity(r) })),
+    { viewerId: user.id, viewerIdentity, showIdentity: isAdminViewer }
+  )
+  let expMe: RankRow | null = null
+  if (viewerRole === "student" && !expRows.some((r) => r.me)) {
+    const myExp = (viewer?.exp_points as number | null) ?? 0
+    const { count } = await admin
+      .from("profiles").select("id", { count: "exact", head: true }).eq("role", "student").gt("exp_points", myExp)
+    expMe = { rank: outsideRank(count), value: myExp, tier: null, me: true, identity: viewerIdentity }
+  }
 
   return (
     <AppShell
-      fullName={viewer?.full_name ?? ""}
+      fullName={viewerIdentity.name ?? ""}
       email={user.email ?? ""}
       role={viewerRole as "student" | "admin"}
-      isAdmin={viewerRole === "admin"}
-      username={viewer?.username ?? null}
-      avatarUrl={viewer?.avatar_url ?? null}
+      isAdmin={isAdminViewer}
+      username={viewerIdentity.username}
+      avatarUrl={viewerIdentity.avatar_url}
       userId={user.id}
     >
       <div className="max-w-2xl mx-auto space-y-6">
@@ -91,12 +115,20 @@ export default async function LeaderboardPage() {
           <div>
             <h1 className="text-2xl font-bold">Эрэмбэ</h1>
             <p className="text-sm text-muted-foreground">
-              Шилдэг 100 сурагч
+              {isAdminViewer ? "Шилдэг 100 сурагч" : "Бусад сурагчийн нэр харагдахгүй. Зөвхөн таны байр болон оноо харагдана."}
             </p>
           </div>
         </div>
 
-        <LeaderboardClient students={students} expStudents={expStudents} currentUserId={user.id} />
+        <LeaderboardClient
+          scoreRows={scoreRows}
+          scoreTotal={scoreTotal ?? scoreRows.length}
+          scoreMe={scoreMe}
+          expRows={expRows}
+          expMe={expMe}
+          isAdmin={isAdminViewer}
+          filters={{ grade: grade ?? "all", subject: subject ?? "all" }}
+        />
       </div>
     </AppShell>
   )

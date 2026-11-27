@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --no-warnings tests/grading.test.mjs"
+    "test": "node --experimental-strip-types --no-warnings tests/grading.test.mjs && node --experimental-strip-types --no-warnings tests/leaderboard.test.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
